@@ -1,0 +1,38 @@
+{
+  "name": "FRDM-MCXN236 (mcx-arduino-core)",
+  "url": "https://github.com/teddokano/mcx-arduino-core",
+  "vendor": "NXP",
+  "frameworks": [
+    "arduino"
+  ],
+  "build": {
+    "core": "arduino",
+    "cpu": "cortex-m33",
+    "mcu": "cortex-m33",
+    "f_cpu": "150000000UL",
+    "variant": "frdm_mcxn236",
+    "ldscript": "MCXN236.ld",
+    "board_macro": "FRDM_MCXN236",
+    "board_defines": [
+      "-DCPU_MCXN236VDF",
+      "-DTARGET_N236",
+      "-DFRDM_MCXN236"
+    ],
+    "fpu_flags": [
+      "-mfpu=fpv5-sp-d16",
+      "-mfloat-abi=hard"
+    ],
+    "opt_flags": [
+      "-O2"
+    ]
+  },
+  "upload": {
+    "maximum_size": 983040,
+    "maximum_ram_size": 229376,
+    "protocol": "linkserver",
+    "protocols": [
+      "linkserver"
+    ],
+    "linkserver_target": "MCXN236:FRDM-MCXN236"
+  }
+}

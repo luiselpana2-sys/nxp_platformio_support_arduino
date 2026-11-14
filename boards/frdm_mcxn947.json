@@ -1,0 +1,40 @@
+{
+  "name": "FRDM-MCXN947 (mcx-arduino-core)",
+  "url": "https://github.com/teddokano/mcx-arduino-core",
+  "vendor": "NXP",
+  "frameworks": [
+    "arduino"
+  ],
+  "build": {
+    "core": "arduino",
+    "cpu": "cortex-m33",
+    "mcu": "cortex-m33",
+    "f_cpu": "150000000UL",
+    "variant": "frdm_mcxn947",
+    "ldscript": "MCXN947.ld",
+    "board_macro": "FRDM_MCXN947",
+    "board_defines": [
+      "-DCPU_MCXN947VDF",
+      "-DCPU_MCXN947VDF_cm33",
+      "-DCPU_MCXN947VDF_cm33_core0",
+      "-DTARGET_N947",
+      "-DFRDM_MCXN947"
+    ],
+    "fpu_flags": [
+      "-mfpu=fpv5-sp-d16",
+      "-mfloat-abi=hard"
+    ],
+    "opt_flags": [
+      "-O2"
+    ]
+  },
+  "upload": {
+    "maximum_size": 2031616,
+    "maximum_ram_size": 393216,
+    "protocol": "linkserver",
+    "protocols": [
+      "linkserver"
+    ],
+    "linkserver_target": "MCXN947:FRDM-MCXN947"
+  }
+}

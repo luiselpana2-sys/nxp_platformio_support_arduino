@@ -1,0 +1,18 @@
+{
+  "name": "nxpmcx",
+  "title": "NXP MCX Arduino FRDM family",
+  "description": "Multi-board PlatformIO adapter for mcx-arduino-core 0.10.0",
+  "version": "0.4.0",
+  "frameworks": {
+    "arduino": {
+      "script": "builder/frameworks/arduino.py"
+    }
+  },
+  "packages": {
+    "toolchain-gccarmnoneeabi": {
+      "type": "toolchain",
+      "owner": "platformio",
+      "version": "~1.120301.0"
+    }
+  }
+}

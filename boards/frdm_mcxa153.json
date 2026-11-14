@@ -1,0 +1,36 @@
+{
+  "name": "FRDM-MCXA153 (mcx-arduino-core)",
+  "url": "https://github.com/teddokano/mcx-arduino-core",
+  "vendor": "NXP",
+  "frameworks": [
+    "arduino"
+  ],
+  "build": {
+    "core": "arduino",
+    "cpu": "cortex-m33+nodsp",
+    "mcu": "cortex-m33+nodsp",
+    "f_cpu": "96000000UL",
+    "variant": "frdm_mcxa153",
+    "ldscript": "MCXA153.ld",
+    "board_macro": "FRDM_MCXA153",
+    "board_defines": [
+      "-DCPU_MCXA153VLH",
+      "-DCPU_MCXA153VLH_cm33_nodsp",
+      "-DTARGET_A153",
+      "-DFRDM_MCXA153"
+    ],
+    "fpu_flags": [],
+    "opt_flags": [
+      "-O2"
+    ]
+  },
+  "upload": {
+    "maximum_size": 114688,
+    "maximum_ram_size": 24576,
+    "protocol": "linkserver",
+    "protocols": [
+      "linkserver"
+    ],
+    "linkserver_target": "MCXA153:FRDM-MCXA153"
+  }
+}
