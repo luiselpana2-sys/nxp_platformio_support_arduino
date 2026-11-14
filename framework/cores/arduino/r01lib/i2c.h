@@ -1,0 +1,362 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
+#ifndef R01LIB_I2C_H
+#define R01LIB_I2C_H
+
+#include	<string.h>
+
+#ifdef	CPU_MCXC444VLH
+#include "fsl_i2c.h"
+#else
+#include "fsl_lpi2c.h"
+#endif
+
+#include	"obj.h"
+#include	"io.h"
+
+/** I2C class
+ *
+ *  @class I2C
+ *
+ *	A master-mode I2C driver (register read/write helpers, raw
+ *	transactions, and a bus scan). I3C derives from this class to reuse
+ *	the same API surface while running the physical bus in I3C mode.
+ */
+
+/** size (in bytes) of the internal scratch buffer reg_write() uses to
+ *  prepend a register address to the data being written. Limits the
+ *  maximum single reg_write() payload to REG_RW_BUFFER_SIZE - 1 bytes.
+ */
+#define	REG_RW_BUFFER_SIZE	10
+
+class I2C: public Obj
+{
+public:
+
+	/** defining pointer to NAK callback	*/
+	typedef void (*err_cb_ptr)( status_t status, uint8_t address );
+
+	/** constants for STOP-condition setting  */
+	enum STOP_CONDITION
+	{
+		STOP	= true,
+		NO_STOP	= false
+	};
+
+	/** constants for SCL frequency settings  */
+	enum FREQ
+	{
+		FREQ	= 400000UL
+	};
+		
+	/** Create an I2C instance with specified pins
+	 *
+	 * @param sda pin number to connect SDA
+	 * @param scl pin number to connect SCL
+	 * @param no_hw (option) flag for I3C. I3C constructor will set this flag to avoid set hardware for both I3C and I2C
+	 */
+	I2C( int sda, int scl, bool no_hw = false );
+
+	/** Destractor to freeing I3C resource
+	 */
+	virtual ~I2C();
+	
+	/** set SCL frequency
+	 *
+	 * @param frequency integer value in "Hz"
+	 */
+	virtual void		frequency( uint32_t frequency );
+
+	/** Pull-up enable
+	 *
+	 * @param enable bool for enabling internal pull-up resister
+	 */
+	virtual void		pullup( bool enable );
+
+#if	CPU_MCXC444VLH
+	/** SCL low timeout: fail a transfer with kStatus_I2C_Timeout when SCL
+	 *  stays low longer than this, instead of blocking forever on a target
+	 *  that holds it.
+	 *
+	 *  Uses the Kinetis I2C's SMBus SCL low timeout (SLTH/SLTL, SMB[SLTF]),
+	 *  which counts the module clock / 64: 1.33us a count at 48MHz, so at
+	 *  most ~87.4ms, whatever the bus speed. Rounded up and clamped to that.
+	 *  A line held low before a transfer starts (SDA) makes the bus look
+	 *  busy, and the transfer is refused with kStatus_I2C_Busy instead.
+	 *
+	 * @param timeout_us timeout in microseconds, 0 to disable
+	 */
+	void				pin_low_timeout( uint32_t timeout_us );
+#else
+	/** Pin-low timeout: fail a transfer with kStatus_LPI2C_PinLowTimeout
+	 *  when SCL or SDA stays low longer than this, instead of blocking
+	 *  forever on a target that holds the bus.
+	 *
+	 *  Uses LPI2C's own PINLOW counter, whose unit depends on the prescaler
+	 *  the baud rate chose -- so frequency() re-applies it. Rounded up to
+	 *  the counter's resolution and clamped to its range, which is
+	 *  4095 x 256 x prescaler / source clock and so shrinks as the bus gets
+	 *  faster: on FRDM-MCXA153 (96MHz), ~87ms at 100kHz but ~21.8ms at 400kHz.
+	 *
+	 * @param timeout_us timeout in microseconds, 0 to disable
+	 */
+	void				pin_low_timeout( uint32_t timeout_us );
+
+	/** Wait, after the master has been (re-)enabled, for it to see the bus
+	 *  idle. With a pin-low timeout set, BUSIDLE is on too, and a freshly
+	 *  enabled master counts the bus as busy until both lines have been
+	 *  high for the BUSIDLE period (~0.34ms at most): a transfer started
+	 *  in that window fails with kStatus_LPI2C_Busy. Waits that period and
+	 *  returns, whether or not the bus is idle by then; returns at once
+	 *  when no timeout is set.
+	 */
+	void				wait_bus_idle( void );
+#endif
+
+	/** Register write (multiple byte data)
+	 *	provideds interface for register write
+	 *	
+	 * @param targ target address
+	 * @param reg register address
+	 * @param dp data to write
+	 * @param length data length
+	 * @return status_t
+	 */
+	virtual status_t	reg_write( uint8_t targ, uint8_t reg, const uint8_t *dp, int length );
+
+	/** Register write (single byte data)
+	 *	provideds interface for register write
+	 *	
+	 * @param targ target address
+	 * @param reg register address
+	 * @param data data to write
+	 * @return status_t
+	 */
+	virtual status_t	reg_write( uint8_t targ, uint8_t reg, uint8_t data );
+	
+	/** Register read (multiple byte data)
+	 *	provides interface for register read
+	 *
+	 * @param targ target address
+	 * @param reg register address
+	 * @param dp buffer to receive the read data
+	 * @param length data length
+	 * @return status_t
+	 */
+	virtual status_t	reg_read( uint8_t targ, uint8_t reg, uint8_t *dp, int length );
+
+	/** Register read (single byte data)
+	 *	provideds interface for register read
+	 *	returns a single byte data
+	 *	status can be checked by last_status variable
+	 *	
+	 * @param targ target address
+	 * @param reg register address
+	 * @return read data
+	 */
+	virtual uint8_t		reg_read( uint8_t targ, uint8_t reg );
+	
+	/** write transaction (multiple byte data)
+	 *
+	 * @param address target address
+	 * @param dp data to write
+	 * @param length data length
+	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
+	 * @return status_t
+	 */
+	virtual status_t	write( uint8_t address, const uint8_t *dp, int length, bool stop = STOP );
+
+	/** write transaction (single byte data)
+	 *
+	 * @param targ target address
+	 * @param data data to write
+	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
+	 * @return status_t
+	 */
+	virtual status_t	write( uint8_t targ, uint8_t data, bool stop = STOP );
+
+	/** read transaction (multiple byte data)
+	 *
+	 * @param address target address
+	 * @param dp buffer to receive the read data
+	 * @param length data length
+	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
+	 * @return status_t
+	 */
+	virtual status_t	read( uint8_t address, uint8_t *dp, int length, bool stop = STOP );
+
+	/** read transaction (single byte data)
+	 *	provideds interface for register read
+	 *	returns a single byte data
+	 *	status can be checked by last_status variable
+	 *
+	 * @param targ target address
+	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
+	 * @return data
+	 */
+	virtual uint8_t		read( uint8_t targ, bool stop = STOP );
+
+	/** registering error handling method
+	 *
+	 * @param callback pointer to error handling method. use "nullptr" to suppress any actions
+	 * @return the previously-registered callback
+	 */
+	virtual err_cb_ptr	err_callback( err_cb_ptr callback );
+
+	/** default error handling callback method
+	 * 		this method will be called when I2C process got an error
+	 * 		the callback can be installed by err_callback method
+	 *
+	 * @param error error status code
+	 * @param address target address
+	 */
+	static void 		err_handling( status_t error, uint8_t address );
+
+	/** ping
+	 *		check device returns ACK
+	 *
+	 * @param addr	target address
+	 * @return true if ACKs
+	 */
+	virtual bool		ping( uint8_t addr );
+
+	/** device scan
+	 *		device scan result will be stored in *bool
+	 *
+	 * @param start	scan start address
+	 * @param last	scan last address
+	 * @param result buffer (indexed by address, 0..last) to receive true/false per address
+	 */
+	virtual void		scan( uint8_t start, uint8_t last, bool *result );
+
+	/** device scan
+	 * 		device scan result will be shown on the screen
+	 * 		scan range can be specified by start and last parameters
+	 *
+	 * @param start	scan start address
+	 * @param last	scan last address
+	 */
+	virtual void		scan( uint8_t start, uint8_t last );
+
+	/** device scan
+	 * 		device scan result will be shown on the screen
+	 * 		scan range can be specified and last parameter
+	 *
+	 * @param last	scan last address
+	 */
+	virtual void		scan( uint8_t last = 124 );
+
+	/** method for I3C class compatibility (no-op stub on the plain-I2C base class)
+	 * Does nothing but return kStatus_Success. This lets device driver code
+	 * written against CCC commands run unmodified on plain I2C -- I3C
+	 * overrides this method to actually perform the CCC broadcast/direct
+	 * write.
+	 *
+	 * @param ccc CCC command
+	 * @param addr target address
+	 * @param data single byte data
+	 * @return kStatus_Success
+	 */
+	virtual status_t	ccc_set( uint8_t ccc, uint8_t addr, uint8_t data );
+
+	/** method for I3C class compatibility (no-op stub on the plain-I2C base class)
+	 * Does nothing but zero-fill the receive buffer and return kStatus_Success.
+	 * This lets device driver code written against CCC commands run
+	 * unmodified on plain I2C -- I3C overrides this method to actually
+	 * perform the CCC broadcast/direct read.
+	 *
+	 * @param ccc CCC command
+	 * @param addr target address
+	 * @param dp buffer to receive data
+	 * @param length data length
+	 * @return status_t
+	 */
+	virtual status_t	ccc_get( uint8_t ccc, uint8_t addr, uint8_t *dp, uint8_t length );
+
+#if	CPU_MCXC444VLH
+	/** The Kinetis I2C this bus runs on, for code that drives its target
+	 *  (slave) side from the I2C interrupt. One module is master or slave
+	 *  at a time; write_core()/read_core() turn its interrupt and its
+	 *  START/STOP detection (FLT[SSIE]) off while they run a controller
+	 *  transfer, which polls the same flags.
+	 * @return I2C base address
+	 */
+	I2C_Type				*kinetis_base( void ) const { return unit_base; }
+#else
+	/** The LPI2C peripheral this bus runs on, for code that drives its
+	 *  target (slave) side through the SDK's LPI2C_Slave* API; the master
+	 *  and target halves of one LPI2C run independently. Not meaningful on
+	 *  an I3C, which is built without a hardware LPI2C.
+	 * @return LPI2C base address
+	 */
+	LPI2C_Type				*lpi2c_base( void ) const { return unit_base; }
+
+	/** @return functional clock of lpi2c_base()'s LPI2C in Hz, what
+	 *  LPI2C_SlaveInit() wants as its source clock */
+	uint32_t				lpi2c_clock( void ) const;
+#endif
+
+	/** variable for reporting last state */
+	status_t				last_status;
+
+protected:
+	/** low-level write transaction, without err_callback dispatch on failure.
+	 *  write()'s implementation, and I3C's I2C_MODE override point.
+	 *
+	 * @param address target address
+	 * @param dp data to write
+	 * @param length data length
+	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
+	 * @return status_t
+	 */
+	virtual status_t	write_core( uint8_t address, const uint8_t *dp, int length, bool stop = STOP );
+
+	/** low-level read transaction, without err_callback dispatch on failure.
+	 *  read()'s implementation, and I3C's I2C_MODE override point.
+	 *
+	 * @param address target address
+	 * @param dp buffer to receive the read data
+	 * @param length data length
+	 * @param stop (option) generate STOP condition: "false" to make repeated-start in next transaction
+	 * @return status_t
+	 */
+	virtual status_t	read_core( uint8_t address, uint8_t *dp, int length, bool stop = STOP );
+
+	/** SDA/SCL pins, kept protected (not private) so I3C -- which delegates
+	 *  construction with no_hw=true and therefore skips this class's own
+	 *  pin_mux() call entirely -- can mux/configure these same persistent
+	 *  objects itself instead of having to construct and discard its own
+	 *  throwaway DigitalInOut locals of the same name. Those throwaway
+	 *  locals used to correctly mux the physical pin (PORT_PCR is per-pin,
+	 *  not per-object, so the hardware ended up configured either way) but
+	 *  left these members' own pin_mux()-driven bookkeeping (notably
+	 *  mcxPinState's pin-ownership registry) permanently stale.
+	 */
+	DigitalInOut			_sda;
+	DigitalInOut			_scl;
+
+private:
+#if	CPU_MCXC444VLH
+	i2c_master_config_t		masterConfig;
+	I2C_Type				*unit_base;
+	bool					repeated_start_required_flag;
+
+	status_t				transfer_kinetis( uint8_t address, bool read, uint8_t *dp, int length, bool stop );
+#else
+	lpi2c_master_config_t	masterConfig;
+	LPI2C_Type				*unit_base;
+
+	void					apply_pin_low_timeout( void );
+	status_t				write_lpi2c( uint8_t address, const uint8_t *dp, int length, bool stop );
+	status_t				read_lpi2c( uint8_t address, uint8_t *dp, int length, bool stop );
+#endif
+	err_cb_ptr				err_cb;
+	bool					_no_hw;
+	uint32_t				_pin_low_timeout_us;
+};
+
+#endif // R01LIB_I2C_H

@@ -1,0 +1,519 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
+extern "C" {
+#include "peripherals.h"
+#include "fsl_common.h"
+#include "pin_mux.h"
+#include "clock_config.h"
+#include "board.h"
+#include "fsl_clock.h"
+#include "fsl_debug_console.h"
+
+#if	CPU_MCXC444VLH
+	#include "fsl_i2c.h"
+#else
+	#include "fsl_reset.h"
+	#include "fsl_utick.h"
+	#include "fsl_i3c.h"
+	#include "fsl_lpi2c.h"
+#endif
+}
+
+#include "mcu.h"
+#include "obj.h"
+#include "io.h"
+#include "Serial.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wprio-ctor-dtor"
+__attribute__((constructor(0)))
+void start_mcu()
+{
+#if defined(__ARM_ARCH_8M_MAIN__)
+	//	The stack grows down from the top of SRAM towards the heap, with
+	//	nothing in between to stop it. MSPLIM turns running into the heap
+	//	into a fault (reported by mcx_fault_report()) before it corrupts
+	//	the heap and the globals below it.
+	extern char	_pvHeapLimit;
+	__set_MSPLIM( (uint32_t)&_pvHeapLimit );
+#endif
+
+	Obj	o( false );
+
+#if defined(__ARM_ARCH_6M__)
+	//	The M0+ has no MSPLIM. The stack sits at the bottom of the SRAM
+	//	instead (MCXC444.ld), so an overflow pushes into reserved space,
+	//	and with no room to stack the HardFault the core locks up, which
+	//	resets the chip. Stop here and say so, rather than run the sketch
+	//	into the same overflow again and again.
+	if ( RCM->SRS1 & RCM_SRS1_LOCKUP_MASK )
+		panic( "HardFault: stack overflow, most likely (the core locked up and reset)" );
+#endif
+}
+
+//__attribute__((constructor(1)))
+void start_message()
+{
+	PRINTF("\r\n***  MCU initialized properly  ***\r\n");
+}
+#pragma GCC diagnostic pop
+
+
+void init_mcu( void )
+{
+#ifdef	CPU_MCXN947VDF
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom4Clk, 1);
+	CLOCK_AttachClk(BOARD_DEBUG_UART_CLK_ATTACH);
+
+	/* Attach PLL0 clock to I3C, 150MHz / 6 = 25MHz. */
+	CLOCK_SetClkDiv(kCLOCK_DivI3c1FClk, 6U);
+	CLOCK_AttachClk(kPLL0_to_I3C1FCLK);
+
+	/* I2C */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom2Clk, 1u);
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+
+	/* SPI -- FRO_HF_DIV (48MHz, see BOARD_BootClockPLL150M's
+	   CLOCK_SetupFROHFClocking() call), not FRO12M: this chip's LPSPI
+	   can't exceed roughly half its source clock's rate (basic SPI
+	   clock-division limit), so a 12MHz FRO12M source caps real
+	   throughput far below what SPISettings() requests -- confirmed on
+	   real hardware, a 24MHz SPISettings request measured as ~31kHz
+	   actual SCK on FRO12M (FRDM-MCXA153's equivalent default SPI
+	   already uses FRO_HF_DIV for exactly this reason, at the same
+	   48MHz, and measures the requested 24MHz correctly). */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom1Clk, 1u);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM1);
+
+	/* I2C on MikroBus (MB_SDA/MB_SCL -> LPI2C3) */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom3Clk, 1u);
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM3);
+
+	/* SPI on MikroBus (MB_MOSI/MB_MISO/MB_SCK/MB_CS -> LPSPI6) -- FRO_HF_DIV,
+	   same reasoning as the default SPI above (FRO12M is too coarse a
+	   source for LPSPI's baud-rate divider search to land on the exact
+	   requested rate). Confirmed on real hardware: a 1MHz SPISettings
+	   request on FRO12M measured as 500kHz actual SCK; FRDM-MCXA153's
+	   equivalent SPI1 (LPSPI0) already uses FRO_HF_DIV via its own
+	   clock_config.c and hits the requested rate correctly. */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom6Clk, 1u);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM6);
+
+	/* Serial1 on MikroBus (MB_TX/MB_RX -> LPUART5); the attach itself is
+	   also done lazily by Serial::_setup_clock() when the instance begin()s,
+	   but the divider needs a known value up front like every other FlexComm here. */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom5Clk, 1u);
+
+	SYSCON->CLOCK_CTRL |= SYSCON_CLOCK_CTRL_FRO1MHZ_ENA_MASK;	//	UTICK
+
+	CLOCK_EnableClock( kCLOCK_Gpio0 );
+	CLOCK_EnableClock( kCLOCK_Gpio1 );
+	CLOCK_EnableClock( kCLOCK_Gpio2 );
+	CLOCK_EnableClock( kCLOCK_Gpio3 );
+	CLOCK_EnableClock( kCLOCK_Gpio4 );
+
+	/* Init board hardware. */
+	BOARD_InitBootPins();
+	BOARD_InitBootClocks();
+	BOARD_InitBootPeripherals();
+	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+		/* Init FSL debug console. */
+		BOARD_InitDebugConsole();
+	#endif
+
+#elif	CPU_MCXN236VDF
+	/* This board's clock_config.c and pin_mux.c are the SDK's board project
+	 * template: BOARD_BootClockPLL150M() attaches no peripheral clock, as on
+	 * N947, and BOARD_InitBootPins() enables PORT1 only, for the debug
+	 * UART's two pins. Everything else is done here. PORT5 and GPIO5 have
+	 * no clock gate. */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom4Clk, 1);
+	CLOCK_AttachClk(BOARD_DEBUG_UART_CLK_ATTACH);
+
+	/* I3C1, on D18/D19: only r01lib's own I3C class uses it here. PLL0
+	   150MHz / 12 = 12.5MHz, as the SDK's FRDM-MCXN236 I3C master examples. */
+	CLOCK_SetClkDiv(kCLOCK_DivI3c1FClk, 12U);
+	CLOCK_AttachClk(kPLL0_to_I3C1FCLK);
+
+	/* Wire1 (LPI2C2) and Serial1 (LPUART2), which share FlexComm2 */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom2Clk, 1u);
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+
+	/* SPI (LPSPI3) -- FRO_HF_DIV (48MHz), not FRO12M, for the same reason
+	   as N947's SPI above */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom3Clk, 1u);
+	CLOCK_AttachClk(kFRO_HF_DIV_to_FLEXCOMM3);
+
+	/* Wire (LPI2C5, D18/D19) */
+	CLOCK_SetClkDiv(kCLOCK_DivFlexcom5Clk, 1u);
+	CLOCK_AttachClk(kFRO12M_to_FLEXCOMM5);
+
+	SYSCON->CLOCK_CTRL |= SYSCON_CLOCK_CTRL_FRO1MHZ_ENA_MASK;	//	UTICK
+
+	CLOCK_EnableClock( kCLOCK_Port0 );
+	CLOCK_EnableClock( kCLOCK_Port1 );
+	CLOCK_EnableClock( kCLOCK_Port2 );
+	CLOCK_EnableClock( kCLOCK_Port3 );
+	CLOCK_EnableClock( kCLOCK_Port4 );
+
+	CLOCK_EnableClock( kCLOCK_Gpio0 );
+	CLOCK_EnableClock( kCLOCK_Gpio1 );
+	CLOCK_EnableClock( kCLOCK_Gpio2 );
+	CLOCK_EnableClock( kCLOCK_Gpio3 );
+	CLOCK_EnableClock( kCLOCK_Gpio4 );
+
+	/* Init board hardware. */
+	BOARD_InitBootPins();
+	BOARD_InitBootClocks();
+	BOARD_InitBootPeripherals();
+	#ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
+		/* Init FSL debug console. */
+		BOARD_InitDebugConsole();
+	#endif
+
+
+#elif	CPU_MCXA156VLL
+	/* This board's clock_config.c and pin_mux.c are the SDK's unmodified
+	 * project template: BOARD_BootClockFRO96M() attaches no peripheral
+	 * clock, and BOARD_InitPins() sets up only PORT0 and the debug UART's
+	 * pins. Everything else FRDM-MCXA153's own clock_config.c/pin_mux.c
+	 * do for it is done here, to the same effect: the ports, and LPI2C/
+	 * LPSPI/I3C0 on FRO_HF_DIV (96MHz, FRO_HF divided by 1). LPUARTs and
+	 * the other peripherals attach their own clocks. */
+	CLOCK_EnableClock( kCLOCK_GatePORT0 );
+	CLOCK_EnableClock( kCLOCK_GatePORT1 );
+	CLOCK_EnableClock( kCLOCK_GatePORT2 );
+	CLOCK_EnableClock( kCLOCK_GatePORT3 );
+	CLOCK_EnableClock( kCLOCK_GatePORT4 );
+	RESET_ReleasePeripheralReset( kPORT0_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kPORT1_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kPORT2_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kPORT3_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kPORT4_RST_SHIFT_RSTn );
+
+	CLOCK_EnableClock( kCLOCK_GateGPIO0 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO1 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO2 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO3 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO4 );
+	RESET_ReleasePeripheralReset( kGPIO0_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kGPIO1_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kGPIO2_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kGPIO3_RST_SHIFT_RSTn );
+	RESET_ReleasePeripheralReset( kGPIO4_RST_SHIFT_RSTn );
+
+	/* I3C0 at FRO_HF_DIV / 2 = 48MHz, as on FRDM-MCXA153. The Arduino
+	 * layer does not use it (Wire is LPI2C0 on the same two pins). */
+	CLOCK_SetClockDiv( kCLOCK_DivI3C0_FCLK, 2U );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_I3C0FCLK );
+
+	/* I2C: Wire (LPI2C0, D18/D19), Wire1 (LPI2C3, MB_SDA/MB_SCL), and
+	 * LPI2C1, which r01lib's I2C class also offers on MB_MOSI/MB_SCK and
+	 * A4/A5 */
+	CLOCK_SetClockDiv( kCLOCK_DivLPI2C0, 1u );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_LPI2C0 );
+	CLOCK_SetClockDiv( kCLOCK_DivLPI2C1, 1u );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_LPI2C1 );
+	CLOCK_SetClockDiv( kCLOCK_DivLPI2C3, 1u );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_LPI2C3 );
+
+	/* SPI: SPI (LPSPI1, D10-D13) and SPI1 (LPSPI0, MikroBus) */
+	CLOCK_SetClockDiv( kCLOCK_DivLPSPI1, 1u );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_LPSPI1 );
+	CLOCK_SetClockDiv( kCLOCK_DivLPSPI0, 1u );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_LPSPI0 );
+
+	RESET_PeripheralReset( kUTICK0_RST_SHIFT_RSTn );
+
+	BOARD_InitPins();
+	BOARD_InitBootClocks();
+	BOARD_InitDebugConsole();
+
+#elif	CPU_MCXA153VLH
+	/* Attach I3C0 to FRO_HF_DIV / 2. Note the attach below is overridden
+	 * anyway: clock_config.c's BOARD_BootClockFRO96M() re-attaches every
+	 * peripheral to FRO_HF_DIV, and init_mcu() calls it after this block.
+	 * With FRO_HF at 96MHz that leaves I3C0 at 48MHz -- this comment used
+	 * to say 24MHz, from back when FRO_HF was 48MHz. Only the divider set
+	 * here survives; clock_config.c sets no per-peripheral dividers. */
+	CLOCK_SetClockDiv( kCLOCK_DivI3C0_FCLK, 2U );
+	CLOCK_AttachClk( kFRO_HF_DIV_to_I3C0FCLK );
+
+	/* I2C */
+	CLOCK_SetClockDiv(kCLOCK_DivLPI2C0, 1u);
+	CLOCK_AttachClk(kFRO12M_to_LPI2C0);
+
+	/* SPI */
+	CLOCK_SetClockDiv(kCLOCK_DivLPSPI1, 1u);
+	CLOCK_AttachClk(kFRO12M_to_LPSPI1);
+
+	/* SPI1 on MikroBus (MB_MOSI/MB_MISO/MB_SCK/MB_CS -> LPSPI0) */
+	CLOCK_SetClockDiv(kCLOCK_DivLPSPI0, 1u);
+	CLOCK_AttachClk(kFRO12M_to_LPSPI0);
+
+	CLOCK_EnableClock( kCLOCK_GateGPIO0 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO1 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO2 );
+	CLOCK_EnableClock( kCLOCK_GateGPIO3 );
+
+	RESET_PeripheralReset( kUTICK0_RST_SHIFT_RSTn );
+
+	BOARD_InitPins();
+	BOARD_InitBootClocks();
+	BOARD_InitDebugConsole();
+
+#elif	CPU_MCXC444VLH
+	/* Init board hardware. */
+	BOARD_InitBootPins();
+	BOARD_InitBootClocks();
+	BOARD_InitDebugConsole();
+
+	//	The SDK template's BOARD_InitBootPins() clocks only PORTA (the debug
+	//	UART). Touching another port's PCR with its clock gated off is a
+	//	HardFault on Kinetis, so open all five here, as the MCX chips do above
+	CLOCK_EnableClock( kCLOCK_PortA );
+	CLOCK_EnableClock( kCLOCK_PortB );
+	CLOCK_EnableClock( kCLOCK_PortC );
+	CLOCK_EnableClock( kCLOCK_PortD );
+	CLOCK_EnableClock( kCLOCK_PortE );
+
+#if (defined(SDK_DEBUGCONSOLE) && (SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK))	
+	/* PORTA1 (pin 23) is configured as LPUART0_RX */
+	/* PORTA2 (pin 24) is configured as LPUART0_TX */
+	PORT_SetPinMux( BOARD_INITDEBUG_UARTPINS_DEBUG_UART_RX_PORT, BOARD_INITDEBUG_UARTPINS_DEBUG_UART_RX_PIN, kPORT_MuxAlt2 );
+	PORT_SetPinMux( BOARD_INITDEBUG_UARTPINS_DEBUG_UART_TX_PORT, BOARD_INITDEBUG_UARTPINS_DEBUG_UART_TX_PIN, kPORT_MuxAlt2 );
+#else
+	/* PORTA1 (pin 23) is configured as LPUART0_RX */
+	/* PORTA2 (pin 24) is configured as LPUART0_TX */
+	PORT_SetPinMux( BOARD_INITDEBUG_UARTPINS_DEBUG_UART_RX_PORT, BOARD_INITDEBUG_UARTPINS_DEBUG_UART_RX_PIN, kPORT_MuxAsGpio );
+	PORT_SetPinMux( BOARD_INITDEBUG_UARTPINS_DEBUG_UART_TX_PORT, BOARD_INITDEBUG_UARTPINS_DEBUG_UART_TX_PIN, kPORT_MuxAsGpio );
+#endif // (defined(SDK_DEBUGCONSOLE) && (SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK))
+
+
+#else
+	#error Not supported CPU
+	
+#endif
+
+#ifndef	CPU_MCXC444VLH
+	UTICK_Init( UTICK0 );
+#endif
+}
+
+void wait( double delayTime_sec )
+{
+	SDK_DelayAtLeastUs( (uint32_t)(delayTime_sec * 1000000.0), CLOCK_GetCoreSysClkFreq() );
+}
+
+void wait_ms( unsigned int milloseconds )
+{
+	wait( (double)milloseconds * 1e-3 );
+}
+
+void wait_us( unsigned int microseconds )
+{
+	wait( (double)microseconds * 1e-6 );
+}
+
+/*
+ *  The message goes out of the USB serial port, where the Serial Monitor
+ *  is. PRINTF only reaches it when the SDK debug console owns that port
+ *  (SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK, as in a plain r01lib
+ *  project); the Arduino core builds with SDK_DEBUGCONSOLE=0, where
+ *  PRINTF is printf and printf's output goes nowhere, so every panic there
+ *  used to show only the blinking LED. Serial::panic_write() polls the
+ *  UART itself instead. The message is sent again on every round of the
+ *  blink, so a Serial Monitor opened after the panic still gets it.
+ */
+static void panic_message( const char *s )
+{
+#if (defined(SDK_DEBUGCONSOLE) && (SDK_DEBUGCONSOLE == DEBUGCONSOLE_REDIRECT_TO_SDK))
+	PRINTF( "\r\nerror: %s\r\n", s );
+#else
+	Serial::panic_write( "\r\nerror: " );
+	Serial::panic_write( s );
+	Serial::panic_write( "\r\n" );
+#endif
+}
+
+void panic( const char *s )
+{
+	// A panic raised while sending the message (it builds a Serial if
+	// none exists yet) must not recurse; it just blinks
+	static bool	in_panic	= false;
+	bool		can_print	= !in_panic;
+	in_panic	= true;
+
+	typedef struct			{ int on; int off; }	single_code_t;
+	static single_code_t	code[]	= { { 1, 1 }, { 1, 1 }, { 1, 3 }, { 3, 1 },  { 3, 1 }, { 3, 3 }, { 1, 1 }, { 1, 1 }, { 1, 7 } };
+	DigitalOut				leds[]	= { DigitalOut( RED ), DigitalOut( GREEN ), DigitalOut( BLUE ) };
+	float					duration	= 0.07;
+	
+	leds[ 0 ]	= 1;
+	leds[ 1 ]	= 1;
+	leds[ 2 ]	= 1;
+	
+	while ( true )
+	{
+		if ( can_print )
+			panic_message( s );
+
+		for ( unsigned long i = 0; i < sizeof( code ) / sizeof( single_code_t ); i++ )
+		{
+			leds[ 0 ]	= 0;
+			wait( code[ i ].on  * duration );
+			leds[ 0 ]	= 1;
+			wait( code[ i ].off * duration );
+		}
+	}
+}
+
+/*
+ *  HardFault_Handler (sdk/semihost_hardfault.c) branches here for every
+ *  fault except semihosting. MemManage, BusFault and UsageFault are not
+ *  enabled, so they escalate to HardFault and come here too; CFSR still
+ *  tells them apart. This runs in the HardFault handler: interrupts are
+ *  off, and a fault in here would lock the core up, so the message is
+ *  built without printf and handed to panic(), which only polls.
+ *
+ *  The stacked PC is where the fault happened; arm-none-eabi-addr2line
+ *  on the sketch's .elf turns it into a source line. It is left out when
+ *  stacking itself failed, as the frame can't be trusted then.
+ */
+namespace {
+
+char *put_str( char *p, const char *s )
+{
+	while ( *s )
+		*p++	= *s++;
+
+	return p;
+}
+
+char *put_hex( char *p, uint32_t v )
+{
+	p	= put_str( p, "0x" );
+
+	for ( int i = 28; i >= 0; i -= 4 )
+		*p++	= "0123456789ABCDEF"[ (v >> i) & 0xF ];
+
+	return p;
+}
+
+#if !defined( __ARM_ARCH_6M__ )
+const char *fault_reason( uint32_t cfsr, uint32_t hfsr )
+{
+	if ( cfsr & SCB_CFSR_STKOF_Msk )		return "stack overflow";
+	if ( cfsr & (SCB_CFSR_STKERR_Msk | SCB_CFSR_MSTKERR_Msk) )
+											return "stack overflow or corruption";
+	if ( cfsr & (SCB_CFSR_UNSTKERR_Msk | SCB_CFSR_MUNSTKERR_Msk) )
+											return "stack corruption";
+	if ( cfsr & (SCB_CFSR_PRECISERR_Msk | SCB_CFSR_DACCVIOL_Msk) )
+											return "bad memory access";
+	if ( cfsr & SCB_CFSR_IMPRECISERR_Msk )	return "bad memory write (PC is somewhat after it)";
+	if ( cfsr & (SCB_CFSR_IBUSERR_Msk | SCB_CFSR_IACCVIOL_Msk) )
+											return "jump to a bad address";
+	if ( cfsr & SCB_CFSR_INVSTATE_Msk )		return "call through a null or bad function pointer";
+	if ( cfsr & SCB_CFSR_UNDEFINSTR_Msk )	return "undefined instruction";
+	if ( cfsr & SCB_CFSR_INVPC_Msk )		return "bad exception return";
+	if ( cfsr & SCB_CFSR_NOCP_Msk )			return "coprocessor or FPU not enabled";
+	if ( cfsr & SCB_CFSR_DIVBYZERO_Msk )	return "division by zero";
+	if ( cfsr & SCB_CFSR_UNALIGNED_Msk )	return "unaligned access";
+	if ( cfsr & (SCB_CFSR_LSPERR_Msk | SCB_CFSR_MLSPERR_Msk) )
+											return "FPU state stacking failed";
+	if ( hfsr & SCB_HFSR_VECTTBL_Msk )		return "vector table read failed";
+	if ( hfsr & SCB_HFSR_DEBUGEVT_Msk )		return "breakpoint without a debugger";
+
+	return "unknown fault";
+}
+
+}	// namespace
+
+extern "C" __attribute__((noreturn)) void mcx_fault_report( const uint32_t *frame, uint32_t exc_return )
+{
+	uint32_t	cfsr	= SCB->CFSR;
+	uint32_t	hfsr	= SCB->HFSR;
+	bool		stacked	= !(cfsr & (SCB_CFSR_STKOF_Msk | SCB_CFSR_STKERR_Msk | SCB_CFSR_MSTKERR_Msk));
+
+	static char	msg[ 160 ];
+	char		*p	= msg;
+
+	p	= put_str( p, "HardFault: " );
+	p	= put_str( p, fault_reason( cfsr, hfsr ) );
+
+	if ( cfsr & SCB_CFSR_BFARVALID_Msk )
+	{
+		p	= put_str( p, " to " );
+		p	= put_hex( p, SCB->BFAR );
+	}
+	else if ( cfsr & SCB_CFSR_MMARVALID_Msk )
+	{
+		p	= put_str( p, " to " );
+		p	= put_hex( p, SCB->MMFAR );
+	}
+
+	if ( stacked )
+	{
+		p	= put_str( p, " at PC " );
+		p	= put_hex( p, frame[ 6 ] );
+	}
+
+	//	EXC_RETURN bit 3 clear: the fault came from handler mode
+	if ( !(exc_return & 0x8) )
+		p	= put_str( p, " in an interrupt" );
+
+	p	= put_str( p, " (CFSR " );
+	p	= put_hex( p, cfsr );
+	p	= put_str( p, ", HFSR " );
+	p	= put_hex( p, hfsr );
+	p	= put_str( p, ")" );
+	*p	= '\0';
+
+	panic( msg );
+
+	while ( true )
+		;
+}
+#else	// ARMv6-M (Cortex-M0+): no CFSR/HFSR/BFAR/MMFAR to tell faults apart
+
+}	// namespace
+
+extern "C" __attribute__((noreturn)) void mcx_fault_report( const uint32_t *frame, uint32_t exc_return )
+{
+	static char	msg[ 80 ];
+	char		*p	= msg;
+
+	p	= put_str( p, "HardFault at PC " );
+	p	= put_hex( p, frame[ 6 ] );
+
+	//	EXC_RETURN bit 3 clear: the fault came from handler mode
+	if ( !(exc_return & 0x8) )
+		p	= put_str( p, " in an interrupt" );
+
+	*p	= '\0';
+
+	panic( msg );
+
+	while ( true )
+		;
+}
+#endif
+
+#if defined( CPU_MCXN236VDF )
+extern "C" {
+#include "fsl_lpflexcomm.h"
+}
+
+void flexcomm_keep_shared( uint32_t instance )
+{
+	//	LP_FLEXCOMM_Init() releases the reset and selects the peripherals;
+	//	it does not reset the FlexComm, so whichever of the two is running
+	//	keeps going.
+	if ( 2u == instance )
+		LP_FLEXCOMM_Init( instance, LP_FLEXCOMM_PERIPH_LPI2CAndLPUART );
+}
+#endif

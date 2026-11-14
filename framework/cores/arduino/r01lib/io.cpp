@@ -1,0 +1,684 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license License
+ */
+
+#include	<cstdio>
+#include	"fsl_common.h"
+#include	"fsl_gpio.h"
+#include	"fsl_port.h"
+#include	"pin_mux.h"
+#include	"mcu.h"
+#include	"io.h"
+#include	"pin_registry.h"
+
+#define	DISABLED_GPIO		-1
+#define	DISABLED_PIN		0xFF
+
+GPIO_Type*	gpio_type[]	= GPIO_BASE_PTRS;
+PORT_Type*	port_type[]	= PORT_BASE_PTRS;
+
+typedef	struct	_gpio_pin {
+	int			base;
+	uint32_t	pin;
+} gpio_pin;
+
+#ifdef	CPU_MCXN947VDF
+static gpio_pin pins[]	= {
+	{ DISABLED_GPIO, DISABLED_PIN },
+	{ 0,  0 },
+	{ 0,  1 },
+	{ 0,  2 },
+	{ 0,  3 },
+	{ 0,  4 },
+	{ 0,  5 },
+	{ 0,  6 },
+	{ 0,  7 },
+	{ 0,  8 },
+	{ 0,  9 },
+	{ 0, 10 },
+	{ 0, 11 },
+	{ 0, 12 },
+	{ 0, 13 },
+	{ 0, 14 },
+	{ 0, 15 },
+	{ 0, 16 },
+	{ 0, 17 },
+	{ 0, 18 },
+	{ 0, 19 },
+	{ 0, 20 },
+	{ 0, 21 },
+	{ 0, 22 },
+	{ 0, 23 },
+	{ 0, 24 },
+	{ 0, 25 },
+	{ 0, 26 },
+	{ 0, 27 },
+	{ 0, 28 },
+	{ 0, 29 },
+	{ 0, 30 },
+	{ 0, 31 },
+	{ 1,  0 },
+	{ 1,  1 },
+	{ 1,  2 },
+	{ 1,  3 },
+	{ 1,  4 },
+	{ 1,  5 },
+	{ 1,  6 },
+	{ 1,  7 },
+	{ 1,  8 },
+	{ 1,  9 },
+	{ 1, 10 },
+	{ 1, 11 },
+	{ 1, 12 },
+	{ 1, 13 },
+	{ 1, 14 },
+	{ 1, 15 },
+	{ 1, 16 },
+	{ 1, 17 },
+	{ 1, 18 },
+	{ 1, 19 },
+	{ 1, 20 },
+	{ 1, 21 },
+	{ 1, 22 },
+	{ 1, 23 },
+	{ 1, 30 },
+	{ 1, 31 },
+	{ 2,  0 },
+	{ 2,  1 },
+	{ 2,  2 },
+	{ 2,  3 },
+	{ 2,  4 },
+	{ 2,  5 },
+	{ 2,  6 },
+	{ 2,  7 },
+	{ 2,  8 },
+	{ 2,  9 },
+	{ 2, 10 },
+	{ 2, 11 },
+	{ 3,  0 },
+	{ 3,  1 },
+	{ 3,  2 },
+	{ 3,  3 },
+	{ 3,  4 },
+	{ 3,  5 },
+	{ 3,  6 },
+	{ 3,  7 },
+	{ 3,  8 },
+	{ 3,  9 },
+	{ 3, 10 },
+	{ 3, 11 },
+	{ 3, 12 },
+	{ 3, 13 },
+	{ 3, 14 },
+	{ 3, 15 },
+	{ 3, 16 },
+	{ 3, 17 },
+	{ 3, 18 },
+	{ 3, 19 },
+	{ 3, 20 },
+	{ 3, 21 },
+	{ 3, 22 },
+	{ 3, 23 },
+	{ 4,  0 },
+	{ 4,  1 },
+	{ 4,  2 },
+	{ 4,  3 },
+	{ 4,  4 },
+	{ 4,  5 },
+	{ 4,  6 },
+	{ 4,  7 },
+	{ 4, 12 },
+	{ 4, 13 },
+	{ 4, 14 },
+	{ 4, 15 },
+	{ 4, 16 },
+	{ 4, 17 },
+	{ 4, 18 },
+	{ 4, 19 },
+	{ 4, 20 },
+	{ 4, 21 },
+	{ 4, 22 },
+	{ 4, 23 },
+	{ 5,  0 },
+	{ 5,  1 },
+	{ 5,  2 },
+	{ 5,  3 },
+	{ 5,  4 },
+	{ 5,  5 },
+	{ 5,  6 },
+	{ 5,  7 },
+	{ 5,  8 },
+	{ 5,  9 },
+};
+
+#elif	CPU_MCXN236VDF
+
+static gpio_pin pins[]	= {
+	{ DISABLED_GPIO, DISABLED_PIN },
+	{ 0,  0 },
+	{ 0,  1 },
+	{ 0,  2 },
+	{ 0,  3 },
+	{ 0,  4 },
+	{ 0,  5 },
+	{ 0,  6 },
+	{ 0,  7 },
+	{ 0, 14 },
+	{ 0, 15 },
+	{ 0, 16 },
+	{ 0, 17 },
+	{ 0, 18 },
+	{ 0, 19 },
+	{ 0, 20 },
+	{ 0, 21 },
+	{ 0, 22 },
+	{ 0, 23 },
+	{ 0, 24 },
+	{ 0, 25 },
+	{ 0, 26 },
+	{ 0, 27 },
+	{ 0, 28 },
+	{ 0, 29 },
+	{ 1,  0 },
+	{ 1,  1 },
+	{ 1,  2 },
+	{ 1,  3 },
+	{ 1,  4 },
+	{ 1,  5 },
+	{ 1,  6 },
+	{ 1,  7 },
+	{ 1,  8 },
+	{ 1,  9 },
+	{ 1, 10 },
+	{ 1, 11 },
+	{ 1, 12 },
+	{ 1, 13 },
+	{ 1, 14 },
+	{ 1, 15 },
+	{ 1, 16 },
+	{ 1, 17 },
+	{ 1, 18 },
+	{ 1, 19 },
+	{ 1, 30 },
+	{ 1, 31 },
+	{ 2,  0 },
+	{ 2,  1 },
+	{ 2,  2 },
+	{ 2,  3 },
+	{ 2,  4 },
+	{ 2,  5 },
+	{ 2,  6 },
+	{ 2,  7 },
+	{ 2,  8 },
+	{ 2,  9 },
+	{ 2, 10 },
+	{ 2, 11 },
+	{ 3,  0 },
+	{ 3,  1 },
+	{ 3,  2 },
+	{ 3,  6 },
+	{ 3,  7 },
+	{ 3,  8 },
+	{ 3,  9 },
+	{ 3, 10 },
+	{ 3, 11 },
+	{ 3, 12 },
+	{ 3, 13 },
+	{ 3, 14 },
+	{ 3, 15 },
+	{ 3, 16 },
+	{ 3, 17 },
+	{ 3, 18 },
+	{ 3, 20 },
+	{ 3, 21 },
+	{ 3, 22 },
+	{ 3, 23 },
+	{ 4,  0 },
+	{ 4,  1 },
+	{ 4,  2 },
+	{ 4,  3 },
+	{ 4,  4 },
+	{ 4,  5 },
+	{ 4,  6 },
+	{ 4,  7 },
+	{ 4, 12 },
+	{ 4, 13 },
+	{ 4, 14 },
+	{ 4, 15 },
+	{ 4, 16 },
+	{ 4, 17 },
+	{ 4, 18 },
+	{ 4, 19 },
+	{ 4, 20 },
+	{ 4, 21 },
+	{ 4, 22 },
+	{ 4, 23 },
+	{ 5,  0 },
+	{ 5,  1 },
+	{ 5,  2 },
+	{ 5,  3 },
+	{ 5,  4 },
+	{ 5,  5 },
+	{ 5,  6 },
+	{ 5,  7 },
+};
+
+#elif	CPU_MCXA156VLL
+
+static gpio_pin pins[]	= {
+	{ DISABLED_GPIO, DISABLED_PIN },
+	{ 0,  0 },
+	{ 0,  1 },
+	{ 0,  2 },
+	{ 0,  3 },
+	{ 0,  6 },
+	{ 0, 16 },
+	{ 0, 17 },
+	{ 0, 18 },
+	{ 0, 19 },
+	{ 0, 20 },
+	{ 0, 21 },
+	{ 0, 22 },
+	{ 0, 23 },
+	{ 1,  0 },
+	{ 1,  1 },
+	{ 1,  2 },
+	{ 1,  3 },
+	{ 1,  4 },
+	{ 1,  5 },
+	{ 1,  6 },
+	{ 1,  7 },
+	{ 1,  8 },
+	{ 1,  9 },
+	{ 1, 10 },
+	{ 1, 11 },
+	{ 1, 12 },
+	{ 1, 13 },
+	{ 1, 14 },
+	{ 1, 15 },
+	{ 1, 29 },
+	{ 1, 30 },
+	{ 1, 31 },
+	{ 2,  0 },
+	{ 2,  1 },
+	{ 2,  2 },
+	{ 2,  3 },
+	{ 2,  4 },
+	{ 2,  5 },
+	{ 2,  6 },
+	{ 2,  7 },
+	{ 2, 10 },
+	{ 2, 11 },
+	{ 2, 12 },
+	{ 2, 13 },
+	{ 2, 15 },
+	{ 2, 16 },
+	{ 2, 17 },
+	{ 2, 19 },
+	{ 2, 20 },
+	{ 2, 21 },
+	{ 2, 23 },
+	{ 3,  0 },
+	{ 3,  1 },
+	{ 3,  6 },
+	{ 3,  7 },
+	{ 3,  8 },
+	{ 3,  9 },
+	{ 3, 10 },
+	{ 3, 11 },
+	{ 3, 12 },
+	{ 3, 13 },
+	{ 3, 14 },
+	{ 3, 15 },
+	{ 3, 16 },
+	{ 3, 17 },
+	{ 3, 18 },
+	{ 3, 19 },
+	{ 3, 20 },
+	{ 3, 21 },
+	{ 3, 22 },
+	{ 3, 27 },
+	{ 3, 28 },
+	{ 3, 29 },
+	{ 3, 30 },
+	{ 3, 31 },
+	{ 4,  2 },
+	{ 4,  3 },
+	{ 4,  4 },
+	{ 4,  5 },
+	{ 4,  6 },
+	{ 4,  7 },
+};
+
+#elif	CPU_MCXA153VLH
+
+static gpio_pin pins[]	= {
+	{ DISABLED_GPIO, DISABLED_PIN },
+	{ 0,  0 },
+	{ 0,  1 },
+	{ 0,  2 },
+	{ 0,  3 },
+	{ 0,  6 },
+	{ 0, 16 },
+	{ 0, 17 },
+	{ 1,  0 },
+	{ 1,  1 },
+	{ 1,  2 },
+	{ 1,  3 },
+	{ 1,  4 },
+	{ 1,  5 },
+	{ 1,  6 },
+	{ 1,  7 },
+	{ 1,  8 },
+	{ 1,  9 },
+	{ 1, 10 },
+	{ 1, 11 },
+	{ 1, 12 },
+	{ 1, 13 },
+	{ 1, 29 },
+	{ 1, 30 },
+	{ 1, 31 },
+	{ 2,  0 },
+	{ 2,  1 },
+	{ 2,  2 },
+	{ 2,  3 },
+	{ 2,  4 },
+	{ 2,  5 },
+	{ 2,  6 },
+	{ 2,  7 },
+	{ 2, 12 },
+	{ 2, 13 },
+	{ 2, 16 },
+	{ 3,  0 },
+	{ 3,  1 },
+	{ 3,  6 },
+	{ 3,  7 },
+	{ 3,  8 },
+	{ 3,  9 },
+	{ 3, 10 },
+	{ 3, 11 },
+	{ 3, 12 },
+	{ 3, 13 },
+	{ 3, 14 },
+	{ 3, 15 },
+	{ 3, 27 },
+	{ 3, 28 },
+	{ 3, 29 },
+	{ 3, 30 },
+	{ 3, 31 },
+};
+
+#elif	CPU_MCXC444VLH
+
+static gpio_pin pins[]	= {
+	{ DISABLED_GPIO, DISABLED_PIN },
+	{ 0,  0 },
+	{ 0,  1 },
+	{ 0,  2 },
+	{ 0,  3 },
+	{ 0,  4 },
+	{ 0,  5 },
+	{ 0, 12 },
+	{ 0, 13 },
+	{ 0, 14 },
+	{ 0, 15 },
+	{ 0, 16 },
+	{ 1,  0 },
+	{ 1,  1 },
+	{ 1,  2 },
+	{ 1,  3 },
+	{ 1, 16 },
+	{ 1, 17 },
+	{ 1, 18 },
+	{ 1, 19 },
+	{ 2,  0 },
+	{ 2,  1 },
+	{ 2,  2 },
+	{ 2,  3 },
+	{ 2,  4 },
+	{ 2,  5 },
+	{ 2,  6 },
+	{ 2,  7 },
+	{ 2, 20 },
+	{ 2, 21 },
+	{ 2, 22 },
+	{ 2, 23 },
+	{ 3,  0 },
+	{ 3,  1 },
+	{ 3,  2 },
+	{ 3,  3 },
+	{ 3,  4 },
+	{ 3,  5 },
+	{ 3,  6 },
+	{ 3,  7 },
+	{ 4,  0 },
+	{ 4,  1 },
+	{ 4, 20 },
+	{ 4, 21 },
+	{ 4, 22 },
+	{ 4, 23 },
+	{ 4, 24 },
+	{ 4, 25 },
+	{ 4, 29 },
+	{ 4, 30 },
+	{ 4, 31 },
+};
+#else
+#error Target CPU is not supported
+#endif // CPU_MCXN947VDF
+
+extern "C" {
+#include "fsl_debug_console.h"
+}
+
+
+DigitalInOut::DigitalInOut( uint8_t pin_num, bool direction, bool v, int pin_mode )
+	: Obj( true ), _pn( pin_num ), _dir( direction ), _value( v )
+{
+	if ( -1 == pins[ _pn ].base )
+		return;
+	
+	gpio_pin_config_t led_config = { (gpio_pin_direction_t)direction, _value };
+	
+	gpio_n		= gpio_type[ pins[ _pn ].base ];
+	port_n		= port_type[ pins[ _pn ].base ];
+	gpio_pin	= pins[ _pn ].pin;
+	
+	GPIO_PinInit( gpio_n, gpio_pin, &led_config );
+#if defined( CPU_MCXC444VLH )
+	//	On Kinetis a pin out of reset is ALT0, disabled (analog), and GPIO
+	//	is ALT1: without this the pin neither drives nor reads. The MCX
+	//	chips come out of reset as GPIO (ALT0 there)
+	PORT_SetPinMux( port_n, gpio_pin, kPORT_MuxAsGpio );
+#endif
+	mode( pin_mode );
+#if defined( CPU_MCXA153VLH ) || defined( CPU_MCXN947VDF ) || defined( CPU_MCXA156VLL ) || defined( CPU_MCXN236VDF )
+	//	Without the input buffer (PCR.IBE) digitalRead() reads 0, and so
+	//	does every peripheral reading its pin through here: LPI2C's SDA/SCL,
+	//	LPSPI's SDI, interrupts. AnalogIn turns it off on its pins, on every
+	//	board, so a pin used by analogRead() needs it back. And on
+	//	MCXA156 every pin's buffer is off out of reset (seen on hardware for
+	//	all but P0_6 and P0_2), with the SDK's pin_mux.c used there turning
+	//	it on only for the debug UART. It is turned on again in pin_mux(),
+	//	which pinMode() calls.
+	input_buffer( true );
+#endif
+
+	value( (bool)_value );
+
+	pin_registry_note( this, "GPIO", &_pn, 1, kPORT_MuxAsGpio );
+}
+
+DigitalInOut::~DigitalInOut()
+{
+	pin_registry_forget( this );
+}
+
+void DigitalInOut::value( bool value )
+{
+	if ( -1 == pins[ _pn ].base )
+		return;
+
+	if ( kGPIO_DigitalOutput == _dir )
+		GPIO_PinWrite( gpio_n, gpio_pin, value );
+	
+	_value	= value;
+}
+
+bool DigitalInOut::value( void )
+{
+	if ( -1 == pins[ _pn ].base )
+		return 0;
+
+	if ( kGPIO_DigitalInput == _dir )
+		return GPIO_PinRead( gpio_n, gpio_pin );
+	else
+		return _value;
+}
+
+void DigitalInOut::output( void )
+{
+	_dir	= OUTPUT;
+	direction( _dir );
+}
+
+void DigitalInOut::input( void )
+{
+	_dir	= INPUT;
+	direction( _dir );
+}
+
+void DigitalInOut::direction( bool dir )
+{
+	gpio_pin_config_t led_config = { (gpio_pin_direction_t)dir, _value };
+	GPIO_PinInit( gpio_n, gpio_pin, &led_config );
+}
+
+void DigitalInOut::pin_mux( int mux )
+{
+	PORT_SetPinMux( port_n, gpio_pin, (port_mux_t)mux );
+#if defined( CPU_MCXA153VLH ) || defined( CPU_MCXN947VDF ) || defined( CPU_MCXA156VLL ) || defined( CPU_MCXN236VDF )
+	input_buffer( true );	//	see the constructor
+#endif
+
+	// Keep the pin registry's "wanted ALT" in sync. The constructor's own
+	// registration call (wanted_mux=0) only reflects reality for plain
+	// pinMode() GPIO pins that never get re-muxed afterward -- I2C/I3C's
+	// _sda/_scl and SPI's chip_select are also just DigitalInOut members,
+	// but their owning class immediately calls pin_mux() with the real
+	// peripheral ALT right after construction, which the constructor's
+	// snapshot can't see. pin_registry_note() reuses this object's
+	// existing slot (same `this`) rather than adding a second one, so
+	// this just updates the recorded expectation to match.
+	pin_registry_note( this, "GPIO", &_pn, 1, (uint8_t)mux );
+}
+
+void DigitalInOut::input_buffer( bool enable )
+{
+#ifdef	PORT_PCR_IBE_MASK
+	if ( enable )
+		port_n->PCR[ gpio_pin ] |= PORT_PCR_IBE_MASK;
+	else
+		port_n->PCR[ gpio_pin ] &= ~PORT_PCR_IBE_MASK;
+#else
+	(void)enable;	// Kinetis PORT (FRDM-MCXC444) has no input buffer switch
+#endif
+}
+
+void DigitalInOut::mode( int pin_mode )
+{
+	PORT_SetPinPullUpDown( port_n, gpio_pin, (pin_mode & (PullUp | PullDown)) ? 1 : 0, (pin_mode & PullUp) ? 1 : 0);
+	PORT_SetPinOpenDrain( port_n, gpio_pin, (pin_mode & OpenDrain) ? 1 : 0 );
+}
+
+uint32_t DigitalInOut::mode( void )
+{
+	return PORT_GetPinMode( port_n, gpio_pin );
+}
+
+DigitalInOut& DigitalInOut::operator=( bool v )
+{
+	value( v );
+	return *this;
+}
+
+DigitalInOut& DigitalInOut::operator=( DigitalInOut& )
+{
+	return *this;
+}
+
+DigitalInOut::operator bool()
+{
+	return value();
+}
+
+DigitalOut::DigitalOut( uint8_t pin_num, bool value, int pin_mode )
+	: DigitalInOut( pin_num, kGPIO_DigitalOutput, value, pin_mode )
+{
+}
+
+DigitalOut::~DigitalOut() {}
+
+DigitalIn::DigitalIn( uint8_t pin_num, int pin_mode )
+	: DigitalInOut( pin_num, kGPIO_DigitalInput, 0, pin_mode )
+{
+}
+
+DigitalIn::~DigitalIn() {}
+
+PinPcrInfo pin_registry_read_pcr( uint8_t raw_pin )
+{
+	PinPcrInfo	info	= { 0xFF, false, false, 0 };
+
+	if ( raw_pin >= sizeof( pins ) / sizeof( pins[ 0 ] ) )
+		return info;
+
+	if ( -1 == pins[ raw_pin ].base )
+		return info;
+
+	PORT_Type	*port	= port_type[ pins[ raw_pin ].base ];
+	uint32_t	pcr		= PORT_GetPinMode( port, pins[ raw_pin ].pin );
+
+	info.mux	= (uint8_t)( ( pcr & PORT_PCR_MUX_MASK ) >> PORT_PCR_MUX_SHIFT );
+#ifdef	PORT_PCR_IBE_MASK
+	info.ibe	= 0 != ( pcr & PORT_PCR_IBE_MASK );
+#else
+	info.ibe	= 0 != info.mux;	// Kinetis: digital input is off only in analog mode (ALT0)
+#endif
+
+#ifndef	CPU_MCXC444VLH
+	info.ode	= 0 != ( pcr & PORT_PCR_ODE_MASK );
+#endif
+
+	// PE (pull enable) gates whether PS (pull select: 0=down, 1=up) means
+	// anything -- matches PORT_SetPinPullUpDown()'s own field usage (that
+	// function's enable/logic-vs-PE/PS assignment was briefly swapped
+	// during this tool's own development, confirmed and fixed via real
+	// hardware: INPUT_PULLDOWN was silently leaving pins with no pull
+	// enabled at all -- see PORT_SetPinPullUpDown()'s comment).
+	if ( pcr & PORT_PCR_PE_MASK )
+		info.pull	= ( pcr & PORT_PCR_PS_MASK ) ? 2 : 1;
+
+	return info;
+}
+
+const char *pin_registry_pin_name( uint8_t raw_pin, char *buf, uint8_t buf_size )
+{
+	if ( (raw_pin >= sizeof( pins ) / sizeof( pins[ 0 ] )) || (-1 == pins[ raw_pin ].base) )
+	{
+		snprintf( buf, buf_size, "?%u", raw_pin );
+		return buf;
+	}
+
+#if defined( CPU_MCXC444VLH )
+	//	Kinetis names its ports by letter: PTA1, PTE25
+	snprintf( buf, buf_size, "PT%c%lu", 'A' + pins[ raw_pin ].base, pins[ raw_pin ].pin );
+#else
+	snprintf( buf, buf_size, "P%d_%lu", pins[ raw_pin ].base, pins[ raw_pin ].pin );
+#endif
+
+	return buf;
+}
+

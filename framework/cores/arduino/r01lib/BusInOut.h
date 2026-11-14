@@ -1,0 +1,167 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license
+ */
+
+#ifndef ARDUINO_BUSINOUT_H
+#define ARDUINO_BUSINOUT_H
+
+#include "io.h"
+#include <stdint.h>
+
+/** BusInOut class
+ *	
+ *  @class BusInOut
+ *  
+ *	This class can be inherited. 
+ *	When the "operator=" need to be used in inherited class, 
+ *	use "using BusInOut::operator=;" in that class. 
+ */
+
+class BusInOut {
+public:
+	enum	direction {
+		INPUT	= DigitalInOut::INPUT, 
+		OUTPUT	= DigitalInOut::OUTPUT
+	};
+	
+	/** To define non-connected pin, use BusInOut::nc */
+	constexpr static uint8_t	nc	= 0xFF;
+
+	/** Create a BusInOut instance with specified pins
+	 *
+	 * @param bit0 pin number to connect bus bit0, or BusInOut::nc if unused
+	 * @param bit1 pin number to connect bus bit1, or BusInOut::nc if unused
+	 * @param bit2 pin number to connect bus bit2, or BusInOut::nc if unused
+	 * @param bit3 pin number to connect bus bit3, or BusInOut::nc if unused
+	 * @param bit4 pin number to connect bus bit4, or BusInOut::nc if unused
+	 * @param bit5 pin number to connect bus bit5, or BusInOut::nc if unused
+	 * @param bit6 pin number to connect bus bit6, or BusInOut::nc if unused
+	 * @param bit7 pin number to connect bus bit7, or BusInOut::nc if unused
+	 *
+	 * @note define pins from lower to upper. No need to define upper bits if those are not be used.
+	 *       The bus's width is set to (highest connected bit + 1); trailing nc bits are ignored.
+	 */
+	BusInOut(	uint8_t bit0 = nc,
+				uint8_t bit1 = nc,
+				uint8_t bit2 = nc,
+				uint8_t bit3 = nc,
+				uint8_t bit4 = nc,
+				uint8_t bit5 = nc,
+				uint8_t bit6 = nc,
+				uint8_t bit7 = nc
+			 );
+
+	/** Destructor */
+	virtual ~BusInOut();
+
+	/** Configure BusInOut IO direction
+	 *
+	 * @param conf INPUT or OUTPUT (DigitalInOut::INPUT or DigitalInOut::OUTPUT)
+	 */
+	virtual void		config( int conf );
+
+	/** Output a value to BusInOut pins
+	 *
+	 * @param v value to be set to pins
+	 */
+	virtual void		value( uint8_t v );
+	
+	/** Input a value from BusInOut pins
+	 *
+	 * @return value read from pins
+	 */
+	virtual uint8_t		value( void );
+	
+	
+	/** A short hand for setting pins
+	 */
+	BusInOut&	operator=( uint8_t v );
+	BusInOut&	operator=( BusInOut& rhs );
+
+	/** A short hand for reading pins
+	 */
+	operator	int();
+	
+private:
+	DigitalInOut*	_bits[ 8 ];
+	uint8_t			_width;
+	uint8_t			_mode;
+};
+
+class BusIn : public BusInOut {
+public:
+	using BusInOut::operator=;
+	
+	/** Create a BusIn instance with specified pins
+	 *
+	 * @param bit0 pin number to connect bus bit0, or BusInOut::nc if unused
+	 * @param bit1 pin number to connect bus bit1, or BusInOut::nc if unused
+	 * @param bit2 pin number to connect bus bit2, or BusInOut::nc if unused
+	 * @param bit3 pin number to connect bus bit3, or BusInOut::nc if unused
+	 * @param bit4 pin number to connect bus bit4, or BusInOut::nc if unused
+	 * @param bit5 pin number to connect bus bit5, or BusInOut::nc if unused
+	 * @param bit6 pin number to connect bus bit6, or BusInOut::nc if unused
+	 * @param bit7 pin number to connect bus bit7, or BusInOut::nc if unused
+	 *
+	 * @note define pins from lower to upper. No need to define upper bits if those are not be used.
+	 *       Pins are configured as inputs.
+	 */
+	BusIn(	uint8_t bit0 = nc,
+				uint8_t bit1 = nc,
+				uint8_t bit2 = nc,
+				uint8_t bit3 = nc,
+				uint8_t bit4 = nc,
+				uint8_t bit5 = nc,
+				uint8_t bit6 = nc,
+				uint8_t bit7 = nc
+			 );
+	virtual ~BusIn();
+	
+	/** Configure BusIn IO direction
+	 *
+	 * @note this class only supports INPUT -- calling this panics at runtime
+	 */
+	virtual void		config( int conf );
+};
+
+
+class BusOut : public BusInOut {
+public:
+	using BusInOut::operator=;
+
+	/** Create a BusOut instance with specified pins
+	 *
+	 * @param bit0 pin number to connect bus bit0, or BusInOut::nc if unused
+	 * @param bit1 pin number to connect bus bit1, or BusInOut::nc if unused
+	 * @param bit2 pin number to connect bus bit2, or BusInOut::nc if unused
+	 * @param bit3 pin number to connect bus bit3, or BusInOut::nc if unused
+	 * @param bit4 pin number to connect bus bit4, or BusInOut::nc if unused
+	 * @param bit5 pin number to connect bus bit5, or BusInOut::nc if unused
+	 * @param bit6 pin number to connect bus bit6, or BusInOut::nc if unused
+	 * @param bit7 pin number to connect bus bit7, or BusInOut::nc if unused
+	 *
+	 * @note define pins from lower to upper. No need to define upper bits if those are not be used.
+	 *       Pins are configured as outputs.
+	 */
+	BusOut(	uint8_t bit0 = nc,
+				uint8_t bit1 = nc,
+				uint8_t bit2 = nc,
+				uint8_t bit3 = nc,
+				uint8_t bit4 = nc,
+				uint8_t bit5 = nc,
+				uint8_t bit6 = nc,
+				uint8_t bit7 = nc
+			 );
+	virtual ~BusOut();
+
+	/** Configure BusOut IO direction
+	 *
+	 * @note this class only supports OUTPUT -- calling this panics at runtime
+	 */
+	virtual void		config( int conf );
+};
+
+
+#endif //	ARDUINO_BUSINOUT_H

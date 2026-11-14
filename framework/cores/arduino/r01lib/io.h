@@ -1,0 +1,1091 @@
+/*
+ *  @author Tedd OKANO
+ *
+ *  Released under the MIT license
+ */
+
+#ifndef R01LIB_IO_H
+#define R01LIB_IO_H
+
+extern "C" {
+#include	"fsl_port.h"
+#include	"pin_mux.h"
+#include	"clock_config.h"
+#include	"board.h"
+#include	"obj.h"
+}
+
+/** GPIO direction value for DigitalInOut's direction parameter: output */
+#define	PIN_OUTPUT			kGPIO_DigitalOutput
+/** GPIO direction value for DigitalInOut's direction parameter: input */
+#define	PIN_INPUT			kGPIO_DigitalInput
+
+/** Physical pin table and logical pin-name macros, one block per supported
+ *  CPU (selected by the same CPU_* macro each board's boards.txt defines).
+ *  The enum gives every pinctrl-capable pin on the chip a raw r01lib pin
+ *  value (matching pin_mux.c's physical pin naming, e.g. P0_16); the
+ *  \#defines below it are the logical names actual application/driver code
+ *  is written against, aliased onto whichever physical pin that role maps
+ *  to on this particular board:
+ *   - D0..D19, A0..A5     : Arduino-numbered digital/analog pins (see also
+ *                           the ARD_D0..ARD_A5 aliases below, and
+ *                           arduino_io.h's D0..A5 enum, which further
+ *                           renumbers these into small consecutive Arduino
+ *                           pin indices for pinMode()/digitalWrite())
+ *   - PWM0..PWM5           : the analogWrite()-capable pins (only defined
+ *                           on boards with dedicated PWM pins; comments by
+ *                           each note the backing FlexPWM submodule/channel)
+ *   - RED/GREEN/BLUE       : on-board RGB LED (active-low; see
+ *                           PIN_LED_ON/PIN_LED_OFF), SW2/SW3 : on-board buttons
+ *   - MB_*                 : MikroBus header pins (SPI/I2C/UART/AN/RST/PWM/INT)
+ *   - I2C_SDA/I2C_SCL, I3C_SDA/I3C_SCL, SPI_CS/SPI_MOSI/SPI_MISO/SPI_SCLK
+ *                           : this board's default Wire/Wire1/SPI pins
+ *   - ARD_CS/ARD_MOSI/ARD_MISO/ARD_SCK : aliases of the SPI_* pins above,
+ *                           for sketches/libraries that reference the
+ *                           Arduino-shield SPI header pins by that name
+ *   - USBTX/USBRX           : the USB-CDC-bridged UART pins backing the
+ *                           global Serial instance
+ *   - PIN_LED_ON/PIN_LED_OFF : logic level that turns the on-board LEDs on/off
+ */
+#ifdef	CPU_MCXN947VDF
+enum { 	
+	DISABLED_PIN, 
+	P0_0, P0_1, P0_2, P0_3,
+	P0_4,
+	P0_5,
+	P0_6,
+	P0_7,
+	P0_8,
+	P0_9,
+	P0_10,
+	P0_11,
+	P0_12,
+	P0_13,
+	P0_14,
+	P0_15,
+	P0_16,
+	P0_17,
+	P0_18,
+	P0_19,
+	P0_20,
+	P0_21,
+	P0_22,
+	P0_23,
+	P0_24,
+	P0_25,
+	P0_26,
+	P0_27,
+	P0_28,
+	P0_29,
+	P0_30,
+	P0_31,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_14,
+	P1_15,
+	P1_16,
+	P1_17,
+	P1_18,
+	P1_19,
+	P1_20,
+	P1_21,
+	P1_22,
+	P1_23,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_8,
+	P2_9,
+	P2_10,
+	P2_11,
+	P3_0,
+	P3_1,
+	P3_2,
+	P3_3,
+	P3_4,
+	P3_5,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_16,
+	P3_17,
+	P3_18,
+	P3_19,
+	P3_20,
+	P3_21,
+	P3_22,
+	P3_23,
+	P4_0,
+	P4_1,
+	P4_2,
+	P4_3,
+	P4_4,
+	P4_5,
+	P4_6,
+	P4_7,
+	P4_12,
+	P4_13,
+	P4_14,
+	P4_15,
+	P4_16,
+	P4_17,
+	P4_18,
+	P4_19,
+	P4_20,
+	P4_21,
+	P4_22,
+	P4_23,
+	P5_0,
+	P5_1,
+	P5_2,
+	P5_3,
+	P5_4,
+	P5_5,
+	P5_6,
+	P5_7,
+	P5_8,
+	P5_9,
+};
+
+	#define	D0		P4_3
+	#define	D1		P4_2
+	#define	D2		P0_29
+	#define	D3		P1_23
+	#define	D4		P0_30
+	#define	D5		P1_21
+	#define	D6		P1_2
+	#define	D7		P0_31
+	#define	D8		P0_28
+	#define	D9		P0_10
+	#define	D10		P0_27
+	#define	D11		P0_24
+	#define	D12		P0_26
+	#define	D13		P0_25
+	#define	D18		P4_0
+	#define	D19		P4_1
+	#define	A0		DISABLED_PIN
+	#define	A1		DISABLED_PIN
+	#define	A2		P0_14
+	#define	A3		P0_22
+	#define	A4		P0_15
+	#define	A5		P0_23
+	#define	SW2		P0_23
+	#define	SW3		P0_6
+	#define	MB_AN	DISABLED_PIN
+	#define	MB_RST	P1_3
+	#define	MB_CS	P3_23
+	#define	MB_SCK	P3_21
+	#define	MB_MISO	P3_22
+	#define	MB_MOSI	P3_20
+	#define	MB_PWM	P3_19
+	#define	MB_INT	P5_7
+	#define	MB_RX	P1_16
+	#define	MB_TX	P1_17
+	#define	MB_SCL	P1_1
+	#define	MB_SDA	P1_0
+	#define	RED		D9
+	#define	GREEN	D10
+	#define	BLUE	D6
+
+	// NOTE (corrected after initial real-hardware bring-up): an earlier
+	// version of this file reused A153's physical pin numbers (P3_6..P3_11)
+	// verbatim. On N947 those pins are bare test points (TP8/TP12-18/TP31 in
+	// pin_mux.c's schematic labels), not routed to any populated header --
+	// so analogWrite() compiled and ran but drove pins nobody could reach.
+	// The real PWM-capable, header-accessible pins are P2_2..P2_7 (Arduino
+	// Shield Compatible Headers sheet, FRDM-MCXN947SH.pdf page 12), on
+	// FlexPWM1 (not FlexPWM0 -- see PwmOut.cpp for that instance-name
+	// collision too). This chip's SDK also defines bare `PWM0`/`PWM1` macros
+	// for the FlexPWM peripheral instances themselves ((PWM_Type*)PWM0_BASE /
+	// PWM1_BASE), so those two names have to be explicitly reclaimed here
+	// (#undef, matching the same technique the separate LEDDriver_NXP_Arduino
+	// project's LEDDriver.h already uses for the same collision) before they
+	// can be redefined as logical pin names -- PwmOut.cpp captures the SDK's
+	// original PWM1 meaning into its own alias before including this header,
+	// so its driver calls keep working once this redefinition is in effect.
+	// The PWM0..PWM5 -> physical pin assignment below matches the
+	// "PWM0".."PWM5" silkscreen labels printed directly on that schematic
+	// sheet's header, not physical pin order.
+	#undef	PWM0
+	#undef	PWM1
+	#define	PWM0	P2_3	/* PWM1 sm2 chB */
+	#define	PWM1	P2_2	/* PWM1 sm2 chA */
+	#define	PWM2	P2_5	/* PWM1 sm1 chB */
+	#define	PWM3	P2_4	/* PWM1 sm1 chA */
+	#define	PWM4	P2_7	/* PWM1 sm0 chB */
+	#define	PWM5	P2_6	/* PWM1 sm0 chA */
+
+	#define	I3C_SDA		MB_RX
+	#define	I3C_SCL		MB_TX
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
+
+	#define	USBTX		P1_9
+	#define	USBRX		P1_8
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
+
+
+#elif	CPU_MCXN236VDF
+
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_4,
+	P0_5,
+	P0_6,
+	P0_7,
+	P0_14,
+	P0_15,
+	P0_16,
+	P0_17,
+	P0_18,
+	P0_19,
+	P0_20,
+	P0_21,
+	P0_22,
+	P0_23,
+	P0_24,
+	P0_25,
+	P0_26,
+	P0_27,
+	P0_28,
+	P0_29,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_14,
+	P1_15,
+	P1_16,
+	P1_17,
+	P1_18,
+	P1_19,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_8,
+	P2_9,
+	P2_10,
+	P2_11,
+	P3_0,
+	P3_1,
+	P3_2,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_16,
+	P3_17,
+	P3_18,
+	P3_20,
+	P3_21,
+	P3_22,
+	P3_23,
+	P4_0,
+	P4_1,
+	P4_2,
+	P4_3,
+	P4_4,
+	P4_5,
+	P4_6,
+	P4_7,
+	P4_12,
+	P4_13,
+	P4_14,
+	P4_15,
+	P4_16,
+	P4_17,
+	P4_18,
+	P4_19,
+	P4_20,
+	P4_21,
+	P4_22,
+	P4_23,
+	P5_0,
+	P5_1,
+	P5_2,
+	P5_3,
+	P5_4,
+	P5_5,
+	P5_6,
+	P5_7,
+};
+
+	#define	D0		P4_3
+	#define	D1		P4_2
+	#define	D2		P2_0
+	#define	D3		P3_12
+	#define	D4		P0_21
+	#define	D5		P2_7
+	#define	D6		P3_17
+	#define	D7		P0_22
+	#define	D8		P0_23
+	#define	D9		P3_14
+	#define	D10		P1_3
+	#define	D11		P1_0
+	#define	D12		P1_2
+	#define	D13		P1_1
+	#define	D18		P1_16
+	#define	D19		P1_17
+	// A1/A2 as on a board with R25/R67 removed, which this core assumes
+	// (PIN_MAPPING_N236.md): as shipped, they also reach the CAN
+	// transceiver's RXD/TXD. A3 is the blue LED's pin too, so analogRead()
+	// does not use it (arduino_analog.cpp).
+	#define	A0		P4_6
+	#define	A1		P4_15
+	#define	A2		P4_16
+	#define	A3		P4_17
+	#define	A4		P4_12
+	#define	A5		P4_13
+	// The six FlexPWM1 outputs on the motor-control header J3, numbered as
+	// on the other boards (PWM0/PWM1 on sm2, PWM2/PWM3 on sm1, PWM4/PWM5 on
+	// sm0). Four of them are D-pins too. The SDK's own PWM0/PWM1 (the
+	// FlexPWM instances) give way here, as on MCXN947.
+	#undef	PWM0
+	#undef	PWM1
+	#define	PWM0	P3_17	/* PWM1 sm2 chB, D6 */
+	#define	PWM1	P3_16	/* PWM1 sm2 chA */
+	#define	PWM2	P3_15	/* PWM1 sm1 chB */
+	#define	PWM3	P3_14	/* PWM1 sm1 chA, D9 */
+	#define	PWM4	P2_7	/* PWM1 sm0 chB, D5 */
+	#define	PWM5	P3_12	/* PWM1 sm0 chA, D3 */
+	#define	SW2		P0_20
+	#define	SW3		P0_6
+	#define	MB_AN	P5_3
+	#define	MB_RST	P5_2
+	#define	MB_CS	D18
+	#define	MB_SCK	P1_1
+	#define	MB_MISO	P1_2
+	#define	MB_MOSI	P1_0
+	#define	MB_PWM	P4_18
+	#define	MB_INT	P5_6
+	#define	MB_RX	P4_3
+	#define	MB_TX	P4_2
+	#define	MB_SCL	P4_1
+	#define	MB_SDA	P4_0
+	#define	RED		MB_PWM
+	#define	GREEN	P4_19
+	#define	BLUE	A3
+
+	// Rev C board: D18/D19 are P1_16/P1_17 (LPI2C5, Wire). I3C1 reaches
+	// these same two pins only, and nothing on the board speaks I3C, so the
+	// Arduino layer does not use it.
+	#define	I3C_SDA		D18
+	#define	I3C_SCL		D19
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
+
+	#define	USBTX		P1_9
+	#define	USBRX		P1_8
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
+
+#elif	CPU_MCXA156VLL
+
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_6,
+	P0_16,
+	P0_17,
+	P0_18,
+	P0_19,
+	P0_20,
+	P0_21,
+	P0_22,
+	P0_23,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_14,
+	P1_15,
+	P1_29,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_10,
+	P2_11,
+	P2_12,
+	P2_13,
+	P2_15,
+	P2_16,
+	P2_17,
+	P2_19,
+	P2_20,
+	P2_21,
+	P2_23,
+	P3_0,
+	P3_1,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_16,
+	P3_17,
+	P3_18,
+	P3_19,
+	P3_20,
+	P3_21,
+	P3_22,
+	P3_27,
+	P3_28,
+	P3_29,
+	P3_30,
+	P3_31,
+	P4_2,
+	P4_3,
+	P4_4,
+	P4_5,
+	P4_6,
+	P4_7,
+};
+
+	#define	D0		P2_11
+	#define	D1		P2_10
+	#define	D2		P3_1
+	#define	D3		P3_12
+	#define	D4		P3_31
+	#define	D5		P3_14
+	#define	D6		P3_16
+	#define	D7		P1_14
+	#define	D8		P1_15
+	#define	D9		P3_17
+	// D10/D11 as on a board with R59/R60 moved to 2-3, which this core
+	// assumes (PIN_MAPPING_A156.md): LPSPI1's PCS1/SDO. As shipped, the
+	// header's D10/D11 are P3_13/P3_15 instead.
+	#define	D10		P2_6
+	#define	D11		P2_13
+	#define	D12		P2_16
+	#define	D13		P2_12
+	#define	D18		P0_16
+	#define	D19		P0_17
+	#define	A0		P1_10
+	#define	A1		P2_5
+	#define	A2		P2_3
+	#define	A3		P2_4
+	#define	A4		P1_12
+	#define	A5		P1_13
+	#define	PWM0	P3_11	/* FlexPWM0 sm2 chB */
+	#define	PWM1	P3_10	/* FlexPWM0 sm2 chA */
+	#define	PWM2	P3_9	/* FlexPWM0 sm1 chB */
+	#define	PWM3	P3_8	/* FlexPWM0 sm1 chA */
+	#define	PWM4	P3_7	/* FlexPWM0 sm0 chB */
+	#define	PWM5	P3_6	/* FlexPWM0 sm0 chA */
+	#define	SW2		P1_7
+	#define	SW3		P0_6
+	#define	MB_AN	P3_30
+	#define	MB_RST	P3_29
+	#define	MB_CS	P1_3
+	#define	MB_SCK	P1_1
+	#define	MB_MISO	P1_2
+	#define	MB_MOSI	P1_0
+	#define	MB_PWM	P3_18
+	#define	MB_INT	P3_19
+	#define	MB_RX	P3_20
+	#define	MB_TX	P3_21
+	#define	MB_SCL	P3_27
+	#define	MB_SDA	P3_28
+	#define	RED		D3
+	#define	GREEN	P3_13
+	#define	BLUE	P3_0
+
+	// The on-board P3T1755 is on D18/D19, and I3C0 reaches it only through
+	// these same two pins; the Arduino layer uses them as LPI2C0 (Wire).
+	#define	I3C_SDA		P0_16
+	#define	I3C_SCL		P0_17
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
+
+	#define	USBTX		P0_3
+	#define	USBRX		P0_2
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
+#elif	CPU_MCXA153VLH
+
+
+enum { 	
+	DISABLED_PIN, 
+	P0_0,
+	P0_1,
+	P0_2,
+	P0_3,
+	P0_6,
+	P0_16,
+	P0_17,
+	P1_0,
+	P1_1,
+	P1_2,
+	P1_3,
+	P1_4,
+	P1_5,
+	P1_6,
+	P1_7,
+	P1_8,
+	P1_9,
+	P1_10,
+	P1_11,
+	P1_12,
+	P1_13,
+	P1_29,
+	P1_30,
+	P1_31,
+	P2_0,
+	P2_1,
+	P2_2,
+	P2_3,
+	P2_4,
+	P2_5,
+	P2_6,
+	P2_7,
+	P2_12,
+	P2_13,
+	P2_16,
+	P3_0,
+	P3_1,
+	P3_6,
+	P3_7,
+	P3_8,
+	P3_9,
+	P3_10,
+	P3_11,
+	P3_12,
+	P3_13,
+	P3_14,
+	P3_15,
+	P3_27,
+	P3_28,
+	P3_29,
+	P3_30,
+	P3_31,
+};
+
+	#define	D0		P1_4
+	#define	D1		P1_5
+	#define	D2		P2_4
+	#define	D3		P3_0
+	#define	D4		P2_5
+	#define	D5		P3_12
+	#define	D6		P3_13
+	#define	D7		P3_1
+	#define	D8		P3_15
+	#define	D9		P3_14
+	#define	D10		P2_6
+	#define	D11		P2_13
+	#define	D12		P2_16
+	#define	D13		P2_12
+	#define	D18		P1_8
+	#define	D19		P1_9
+	#define	A0		P1_10
+	#define	A1		P1_12
+	#define	A2		P1_13
+	#define	A3		P2_0
+	#define	A4		P3_31
+	#define	A5		P3_30
+	#define	PWM0	P3_11	/* FlexPWM0 sm2 chB */
+	#define	PWM1	P3_10	/* FlexPWM0 sm2 chA */
+	#define	PWM2	P3_9	/* FlexPWM0 sm1 chB */
+	#define	PWM3	P3_8	/* FlexPWM0 sm1 chA */
+	#define	PWM4	P3_7	/* FlexPWM0 sm0 chB */
+	#define	PWM5	P3_6	/* FlexPWM0 sm0 chA */
+	#define	SW2		P3_29
+	#define	SW3		P1_7
+	#define	MB_AN	P3_30
+	#define	MB_RST	P3_1
+	#define	MB_CS	P1_3
+	#define	MB_SCK	P1_1
+	#define	MB_MISO	P1_2
+	#define	MB_MOSI	P1_0
+	#define	MB_PWM	P3_12
+	#define	MB_INT	P2_5
+	#define	MB_RX	P3_14
+	#define	MB_TX	P3_15
+	#define	MB_SCL	P3_27
+	#define	MB_SDA	P3_28
+	#define	RED		D5
+	#define	GREEN	D6
+	#define	BLUE	D3
+
+	#define	I3C_SDA		P0_16
+	#define	I3C_SCL		P0_17
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
+
+	#define	USBTX		P0_3
+	#define	USBRX		P0_2
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
+
+#elif	CPU_MCXC444VLH
+enum {
+	DISABLED_PIN,
+	PTA0,
+	PTA1,
+	PTA2,
+	PTA3,
+	PTA4,
+	PTA5,
+	PTA12,
+	PTA13,
+	PTA18,
+	PTA19,
+	PTA20,
+	PTB0,
+	PTB1,
+	PTB2,
+	PTB3,
+	PTB16,
+	PTB17,
+	PTB18,
+	PTB19,
+	PTC0,
+	PTC1,
+	PTC2,
+	PTC3,
+	PTC4,
+	PTC5,
+	PTC6,
+	PTC7,
+	PTC20,
+	PTC21,
+	PTC22,
+	PTC23,
+	PTD0,
+	PTD1,
+	PTD2,
+	PTD3,
+	PTD4,
+	PTD5,
+	PTD6,
+	PTD7,
+	PTE0,
+	PTE1,
+	PTE20,
+	PTE21,
+	PTE22,
+	PTE23,
+	PTE24,
+	PTE25,
+	PTE29,
+	PTE30,
+	PTE31,
+};
+
+	#define	D0		PTA1
+	#define	D1		PTA2
+	#define	D2		PTD3
+	#define	D3		PTA12
+	#define	D4		PTA4
+	#define	D5		PTA5
+	#define	D6		PTE29
+	#define	D7		PTE30
+	#define	D8		PTA13
+	#define	D9		PTD2
+	#define	D10		PTD4
+	#define	D11		PTD6
+	#define	D12		PTD7
+	#define	D13		PTD5
+	#define	D18		PTE0
+	#define	D19		PTE1
+	#define	A0		PTB0
+	#define	A1		PTB1
+	#define	A2		PTB2
+	#define	A3		PTB3
+	#define	A4		PTC2
+	#define	A5		PTC1
+	#define	SW2		PTC3
+	#define	SW3		D4
+	#define	MB_AN	A0
+	#define	MB_RST	D7
+	#define	MB_CS	D10
+	#define	MB_SCK	D13
+	#define	MB_MISO	D12
+	#define	MB_MOSI	D11
+	#define	MB_PWM	D3
+	#define	MB_INT	D2
+	#define	MB_RX	D19
+	#define	MB_TX	D18
+	#define	MB_SCL	A5
+	#define	MB_SDA	A4
+	#define	RED		PTE31
+	#define	GREEN	D13
+	#define	BLUE	D6
+
+	#define	I2C_SDA		D18
+	#define	I2C_SCL		D19
+	#define	SPI_CS		D10
+	#define	SPI_MOSI	D11
+	#define	SPI_MISO	D12
+	#define	SPI_SCLK	D13
+	#define	ARD_CS		SPI_CS
+	#define	ARD_MOSI	SPI_MOSI
+	#define	ARD_MISO	SPI_MISO
+	#define	ARD_SCK		SPI_SCLK
+
+	#define	USBTX		D1
+	#define	USBRX		D0
+
+	#define	PIN_LED_OFF	true
+	#define	PIN_LED_ON	false
+
+#else
+#error Target CPU is not supported
+#endif // CPU_MCXN947VDF
+
+
+#define	ARD_D0	D0
+#define	ARD_D1	D1
+#define	ARD_D2	D2
+#define	ARD_D3	D3
+#define	ARD_D4	D4
+#define	ARD_D5	D5
+#define	ARD_D6	D6
+#define	ARD_D7	D7
+#define	ARD_D8	D8
+#define	ARD_D9	D9
+#define	ARD_D10	D10
+#define	ARD_D11	D11
+#define	ARD_D12	D12
+#define	ARD_D13	D13
+#define	ARD_D18	D18
+#define	ARD_D19	D19
+#define	ARD_A0	A0
+#define	ARD_A1	A1
+#define	ARD_A2	A2
+#define	ARD_A3	A3
+#define	ARD_A4	A4
+#define	ARD_A5	A5
+
+/** DigitalInOut class
+ *
+ *  @class DigitalInOut
+ *
+ *	A class for easy GPIO pin operations
+ */
+
+class DigitalInOut: public Obj
+{
+public:
+	enum	direction {
+		INPUT	= kGPIO_DigitalInput, 
+		OUTPUT	= kGPIO_DigitalOutput
+	};
+	
+	enum	PinMode {
+		PullNone	= 0x0,
+		PullUp		= 0x1,
+		PullDown	= 0x2,
+		OpenDrain	= 0x8
+	};
+
+	/** Create a DigitalInOut instance with specified pins
+	 *
+	 * @param pin_num  pin number
+	 * @param direction (optional) direction setting
+	 * @param value    (optional) default value for output
+	 * @param pin_mode (optional) PullUp, PullDown, PullNone, OpenDrain
+	 */
+	DigitalInOut( uint8_t pin_num, bool direction = kGPIO_DigitalInput, bool value = 0, int pin_mode = PullNone );
+
+	/** Destructor
+	 */
+	virtual ~DigitalInOut();
+	
+	/** Pin output setting
+	 *
+	 * @param value value to output
+	 */
+	void	value( bool value );
+
+	/** Pin input state read
+	 *
+	 * @return pin state
+	 */
+	bool	value( void );
+	
+	/** Pin direction to set as output
+	 */
+	void	output( void );
+
+	/** Pin direction to set as input
+	 */
+	void	input( void );
+
+	/** Pin mux (ALT function) setting
+	 * This interface is provided to other class drivers to change pin config dynamically
+	 *
+	 * @param mux ALT index (e.g. kPORT_MuxAlt0..kPORT_MuxAlt10, chip-dependent);
+	 *            ALT0 is always GPIO
+	 */
+	void	pin_mux( int mux );
+
+	/** Digital input buffer enable
+	 *
+	 *  PORT_SetPinMux() only touches the MUX field; on this chip the input
+	 *  buffer (PCR.IBE) is a separate bit that defaults to disabled on pins
+	 *  not otherwise configured at boot (see pin_mux.c). Peripherals reading
+	 *  a pin as input (e.g. UART RX on a non-default pin) need this enabled
+	 *  explicitly or the peripheral never sees the incoming signal, even
+	 *  though the MUX/electrical wiring is otherwise correct.
+	 *
+	 *  @param enable true to enable the digital input buffer
+	 */
+	void	input_buffer( bool enable );
+
+	/** Pin mode setting
+	 * @param pin_mode PullUp, PullDown, PullNone, OpenDrain
+	 */
+	void	mode( int pin_mode );
+
+	/** Read back this pin's current PORT PCR (Pin Control Register) value
+	 * @return the raw PCR register contents
+	 */
+	uint32_t mode( void );
+
+	/** Raw GPIO peripheral base and bit number backing this pin.
+	 *
+	 *  Exposed so fast-GPIO-style third-party libraries (bit-banging code
+	 *  that bypasses value()/GPIO_PinWrite() per-call overhead) can be
+	 *  ported via the digitalPinToPort()/portOutputRegister() family in
+	 *  arduino_io.h.
+	 */
+	GPIO_Type*	gpio_base( void ) const { return gpio_n; }
+	uint8_t		gpio_bit( void ) const  { return gpio_pin; }
+
+	/** A short hand for setting pins
+	 */
+	DigitalInOut&	operator=( bool v );
+	DigitalInOut&	operator=( DigitalInOut& rhs );
+
+	/** A short hand for reading pins
+	 */
+	operator	bool();
+
+protected:
+	void direction( bool dir );
+	
+	uint8_t		_pn; 
+	GPIO_Type	*gpio_n;
+	PORT_Type	*port_n;
+	uint8_t		gpio_pin; 
+	
+private:
+	bool 	_dir; 
+	bool 	_value;
+};
+
+/** DigitalOut class
+ *
+ *  @class DigitalOut
+ *
+ *	A class for easy GPIO output pin operations
+ */
+
+class DigitalOut : public DigitalInOut
+{
+public:
+	using DigitalInOut::operator=;
+
+	/** Create a DigitalOut instance with specified pins
+	 *
+	 * @param pin_num  pin number
+	 * @param value    (optional) default value for output
+	 * @param pin_mode (optional) PullUp, PullDown, PullNone, OpenDrain
+	 */
+	DigitalOut( uint8_t pin_num, bool value = 0, int pin_mode = PullNone );
+	virtual ~DigitalOut();
+};
+
+/** DigitalIn class
+ *
+ *  @class DigitalIn
+ *
+ *	A class for easy GPIO input pin operations
+ */
+
+class DigitalIn : public DigitalInOut
+{
+public:
+	using DigitalInOut::operator=;
+
+	/** Create a DigitalIn instance with specified pins
+	 *
+	 * @param pin_num  pin number
+	 * @param pin_mode (optional) PullUp, PullDown, PullNone, OpenDrain
+	 */
+	DigitalIn( uint8_t pin_num, int pin_mode = PullNone );
+	virtual ~DigitalIn();
+};
+
+
+/** Set a pin's pull resistor configuration directly on its PORT PCR
+ *  register. Used by DigitalInOut::mode() to implement PullUp/PullDown/
+ *  PullNone.
+ *
+ * @param base PORT peripheral base
+ * @param pin pin number within that PORT
+ * @param enable pull enable (PORT_PCR_PE): 0 = no pull, 1 = pull enabled
+ * @param logic pull select (PORT_PCR_PS): 0 = pull-down, 1 = pull-up (only meaningful when enable is set)
+ */
+static inline void PORT_SetPinPullUpDown( PORT_Type *base, uint32_t pin, int enable, int logic )
+{
+	// `enable`/`logic` go into PE/PS respectively, matching the doc comment
+	// above -- these were previously swapped (enable into PS, logic into
+	// PE), which meant PullDown (enable=1, logic=0) wrote PE=0 and left
+	// the pin with no pull enabled at all. Found via mcxPinState reading
+	// back the live PCR register on real hardware: INPUT_PULLUP correctly
+	// showed a pull-up (enable=1, logic=1 happened to still land on the
+	// right bits before this fix), but INPUT_PULLDOWN showed no pull
+	// whatsoever.
+	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_PE_MASK) | PORT_PCR_PE( enable );
+	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_PS_MASK) | PORT_PCR_PS( logic );
+}
+
+/** Set a pin's open-drain configuration directly on its PORT PCR register.
+ *  Used by DigitalInOut::mode() to implement OpenDrain. No-op on chips
+ *  whose PCR has no ODE (Open Drain Enable) field.
+ *
+ * @param base PORT peripheral base
+ * @param pin pin number within that PORT
+ * @param enable 1 to enable open-drain output, 0 for push-pull
+ */
+static inline void PORT_SetPinOpenDrain( PORT_Type *base, uint32_t pin, int enable )
+{
+#ifndef	CPU_MCXC444VLH
+	base->PCR[pin] = (base->PCR[pin] & ~PORT_PCR_ODE_MASK) | PORT_PCR_ODE( enable );
+#endif
+}
+
+/** Read a pin's raw PORT PCR register value. Used by DigitalInOut::mode().
+ *
+ * @param base PORT peripheral base
+ * @param pin pin number within that PORT
+ * @return the raw PCR register contents
+ */
+static inline uint32_t PORT_GetPinMode( PORT_Type *base, uint32_t pin )
+{
+	return base->PCR[pin];
+}
+
+
+
+#endif // R01LIB_IO_H
