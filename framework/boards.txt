@@ -1,0 +1,262 @@
+# NXP FRDM MCX Series
+# boards.txt
+
+##############################################################
+# FRDM-MCXA153
+##############################################################
+
+frdm_mcxa153.name=FRDM-MCXA153 (mcx-arduino-core)
+
+# CPU
+frdm_mcxa153.build.mcu=cortex-m33+nodsp
+frdm_mcxa153.build.fpu_flags=
+frdm_mcxa153.build.f_cpu=96000000UL
+
+# Arduino IDE internal identifiers
+frdm_mcxa153.build.board=FRDM_MCXA153
+frdm_mcxa153.build.core=arduino
+frdm_mcxa153.build.variant=frdm_mcxa153
+
+# Board-specific preprocessor defines
+frdm_mcxa153.build.board_defines=-DCPU_MCXA153VLH -DCPU_MCXA153VLH_cm33_nodsp -DTARGET_A153 -DFRDM_MCXA153
+
+# Optimization (release build)
+frdm_mcxa153.build.opt_flags=-O2
+
+# Flash / RAM
+frdm_mcxa153.upload.maximum_size=114688
+frdm_mcxa153.upload.maximum_data_size=24576
+
+# Linker script filename (inside variants/frdm_mcxa153/linker/)
+frdm_mcxa153.build.ldscript=MCXA153.ld
+
+# Upload
+# build.pyocd_target is currently unused -- no recipe in platform.txt
+# references it (only the LinkServer upload path is implemented).
+# Kept as forward-looking metadata for if pyOCD upload support is added.
+frdm_mcxa153.build.pyocd_target=mcxa153
+frdm_mcxa153.build.linkserver_target=MCXA153:FRDM-MCXA153
+frdm_mcxa153.upload.tool=linkserver
+frdm_mcxa153.upload.tool.default=linkserver
+frdm_mcxa153.upload.protocol=
+
+frdm_mcxa153.vid.0=0x1FC9
+frdm_mcxa153.pid.0=0x0143
+frdm_mcxa153.upload_port.0.vid=0x1FC9
+frdm_mcxa153.upload_port.0.pid=0x0143
+
+# Debug (see platform.txt's debug.* section and tools/gdb-bridge/src/main.go).
+# The launcher and the binaries are board-agnostic; the script below is
+# what tells gdb-bridge which board this is.
+frdm_mcxa153.debug.server.openocd.path={runtime.platform.path}/tools/gdb-bridge/launch.sh
+frdm_mcxa153.debug.server.openocd.path.windows={runtime.platform.path}\tools\gdb-bridge\gdb-bridge-windows-amd64.exe
+frdm_mcxa153.debug.server.openocd.script=a153.cfg
+frdm_mcxa153.debug.svd_file={runtime.platform.path}/variants/frdm_mcxa153/svd/MCXA153.svd
+
+
+##############################################################
+# FRDM-MCXN947
+##############################################################
+
+frdm_mcxn947.name=FRDM-MCXN947 (mcx-arduino-core)
+
+# CPU
+frdm_mcxn947.build.mcu=cortex-m33
+frdm_mcxn947.build.fpu_flags=-mfpu=fpv5-sp-d16 -mfloat-abi=hard
+frdm_mcxn947.build.f_cpu=150000000UL
+
+# Arduino IDE internal identifiers
+frdm_mcxn947.build.board=FRDM_MCXN947
+frdm_mcxn947.build.core=arduino
+frdm_mcxn947.build.variant=frdm_mcxn947
+
+# Board-specific preprocessor defines
+frdm_mcxn947.build.board_defines=-DCPU_MCXN947VDF -DCPU_MCXN947VDF_cm33 -DCPU_MCXN947VDF_cm33_core0 -DTARGET_N947 -DFRDM_MCXN947
+
+# Optimization (release build)
+frdm_mcxn947.build.opt_flags=-O2
+
+# Flash / RAM
+frdm_mcxn947.upload.maximum_size=2031616
+frdm_mcxn947.upload.maximum_data_size=393216
+
+# Linker script filename (inside variants/frdm_mcxn947/linker/)
+frdm_mcxn947.build.ldscript=MCXN947.ld
+
+# Upload
+# build.pyocd_target is currently unused (see the same note on A153's entry
+# above).
+frdm_mcxn947.build.pyocd_target=mcxn947
+frdm_mcxn947.build.linkserver_target=MCXN947:FRDM-MCXN947
+frdm_mcxn947.upload.tool=linkserver
+frdm_mcxn947.upload.tool.default=linkserver
+frdm_mcxn947.upload.protocol=
+
+# Same MCU-Link VID/PID as A153 -- confirmed correct on real hardware:
+# with the board connected, `arduino-cli board list` correctly offered
+# nxp:mcx:frdm_mcxn947 as a match for its port.
+frdm_mcxn947.vid.0=0x1FC9
+frdm_mcxn947.pid.0=0x0143
+frdm_mcxn947.upload_port.0.vid=0x1FC9
+frdm_mcxn947.upload_port.0.pid=0x0143
+
+# Debug (see platform.txt's debug.* section and tools/gdb-bridge/src/main.go).
+# The launcher and the binaries are board-agnostic; the script below is
+# what tells gdb-bridge which board this is.
+frdm_mcxn947.debug.server.openocd.path={runtime.platform.path}/tools/gdb-bridge/launch.sh
+frdm_mcxn947.debug.server.openocd.path.windows={runtime.platform.path}\tools\gdb-bridge\gdb-bridge-windows-amd64.exe
+frdm_mcxn947.debug.server.openocd.script=n947.cfg
+frdm_mcxn947.debug.svd_file={runtime.platform.path}/variants/frdm_mcxn947/svd/MCXN947_cm33_core0.svd
+
+
+##############################################################
+# FRDM-MCXA156
+##############################################################
+
+frdm_mcxa156.name=FRDM-MCXA156 (mcx-arduino-core)
+
+# CPU (with FPU, unlike MCXA153; flags as in the SDK's own projects)
+frdm_mcxa156.build.mcu=cortex-m33
+frdm_mcxa156.build.fpu_flags=-mfpu=fpv5-sp-d16 -mfloat-abi=hard
+frdm_mcxa156.build.f_cpu=96000000UL
+
+# Arduino IDE internal identifiers
+frdm_mcxa156.build.board=FRDM_MCXA156
+frdm_mcxa156.build.core=arduino
+frdm_mcxa156.build.variant=frdm_mcxa156
+
+# Board-specific preprocessor defines
+frdm_mcxa156.build.board_defines=-DCPU_MCXA156VLL -DTARGET_A156 -DFRDM_MCXA156
+
+# Optimization (release build)
+frdm_mcxa156.build.opt_flags=-O2
+
+# Flash / RAM
+frdm_mcxa156.upload.maximum_size=1032192
+frdm_mcxa156.upload.maximum_data_size=122880
+
+# Linker script filename (inside variants/frdm_mcxa156/linker/)
+frdm_mcxa156.build.ldscript=MCXA156.ld
+
+# Upload
+# build.pyocd_target is currently unused (see the same note on A153's entry
+# above).
+frdm_mcxa156.build.pyocd_target=mcxa156
+frdm_mcxa156.build.linkserver_target=MCXA156:FRDM-MCXA156
+frdm_mcxa156.upload.tool=linkserver
+frdm_mcxa156.upload.tool.default=linkserver
+frdm_mcxa156.upload.protocol=
+
+frdm_mcxa156.vid.0=0x1FC9
+frdm_mcxa156.pid.0=0x0143
+frdm_mcxa156.upload_port.0.vid=0x1FC9
+frdm_mcxa156.upload_port.0.pid=0x0143
+
+# Debug (see platform.txt's debug.* section and tools/gdb-bridge/src/main.go).
+# The launcher and the binaries are board-agnostic; the script below is
+# what tells gdb-bridge which board this is.
+frdm_mcxa156.debug.server.openocd.path={runtime.platform.path}/tools/gdb-bridge/launch.sh
+frdm_mcxa156.debug.server.openocd.path.windows={runtime.platform.path}\tools\gdb-bridge\gdb-bridge-windows-amd64.exe
+frdm_mcxa156.debug.server.openocd.script=a156.cfg
+frdm_mcxa156.debug.svd_file={runtime.platform.path}/variants/frdm_mcxa156/svd/MCXA156.svd
+
+
+##############################################################
+# FRDM-MCXN236
+##############################################################
+
+frdm_mcxn236.name=FRDM-MCXN236 (mcx-arduino-core)
+
+# CPU
+frdm_mcxn236.build.mcu=cortex-m33
+frdm_mcxn236.build.fpu_flags=-mfpu=fpv5-sp-d16 -mfloat-abi=hard
+frdm_mcxn236.build.f_cpu=150000000UL
+
+# Arduino IDE internal identifiers
+frdm_mcxn236.build.board=FRDM_MCXN236
+frdm_mcxn236.build.core=arduino
+frdm_mcxn236.build.variant=frdm_mcxn236
+
+# Board-specific preprocessor defines
+frdm_mcxn236.build.board_defines=-DCPU_MCXN236VDF -DTARGET_N236 -DFRDM_MCXN236
+
+# Optimization (release build)
+frdm_mcxn236.build.opt_flags=-O2
+
+# Flash / RAM
+frdm_mcxn236.upload.maximum_size=983040
+frdm_mcxn236.upload.maximum_data_size=229376
+
+# Linker script filename (inside variants/frdm_mcxn236/linker/)
+frdm_mcxn236.build.ldscript=MCXN236.ld
+
+# Upload
+# build.pyocd_target is currently unused (see the same note on A153's entry
+# above).
+frdm_mcxn236.build.pyocd_target=mcxn236
+frdm_mcxn236.build.linkserver_target=MCXN236:FRDM-MCXN236
+frdm_mcxn236.upload.tool=linkserver
+frdm_mcxn236.upload.tool.default=linkserver
+frdm_mcxn236.upload.protocol=
+
+frdm_mcxn236.vid.0=0x1FC9
+frdm_mcxn236.pid.0=0x0143
+frdm_mcxn236.upload_port.0.vid=0x1FC9
+frdm_mcxn236.upload_port.0.pid=0x0143
+
+# Debug (see platform.txt's debug.* section and tools/gdb-bridge/src/main.go).
+# The launcher and the binaries are board-agnostic; the script below is
+# what tells gdb-bridge which board this is.
+frdm_mcxn236.debug.server.openocd.path={runtime.platform.path}/tools/gdb-bridge/launch.sh
+frdm_mcxn236.debug.server.openocd.path.windows={runtime.platform.path}\tools\gdb-bridge\gdb-bridge-windows-amd64.exe
+frdm_mcxn236.debug.server.openocd.script=n236.cfg
+frdm_mcxn236.debug.svd_file={runtime.platform.path}/variants/frdm_mcxn236/svd/MCXN236.svd
+
+
+##############################################################
+# FRDM-MCXC444
+##############################################################
+
+frdm_mcxc444.name=FRDM-MCXC444 (mcx-arduino-core)
+
+# CPU (Cortex-M0+, no FPU)
+frdm_mcxc444.build.mcu=cortex-m0plus
+frdm_mcxc444.build.fpu_flags=
+frdm_mcxc444.build.f_cpu=48000000UL
+
+# Arduino IDE internal identifiers
+frdm_mcxc444.build.board=FRDM_MCXC444
+frdm_mcxc444.build.core=arduino
+frdm_mcxc444.build.variant=frdm_mcxc444
+
+# Board-specific preprocessor defines
+# DISABLE_WDOG=0: SystemInit() leaves the COP alone; ResetISR() turns it off
+# (startup_mcxc444.cpp)
+frdm_mcxc444.build.board_defines=-DCPU_MCXC444VLH -DTARGET_C444 -DFRDM_MCXC444 -DDISABLE_WDOG=0
+
+# Optimization (release build)
+frdm_mcxc444.build.opt_flags=-O2
+
+# Flash / RAM
+frdm_mcxc444.upload.maximum_size=253952
+frdm_mcxc444.upload.maximum_data_size=32768
+
+# Linker script filename (inside variants/frdm_mcxc444/linker/)
+frdm_mcxc444.build.ldscript=MCXC444.ld
+
+# Upload
+frdm_mcxc444.build.linkserver_target=MCXC444:FRDM-MCXC444
+frdm_mcxc444.upload.tool=linkserver
+frdm_mcxc444.upload.tool.default=linkserver
+frdm_mcxc444.upload.protocol=
+
+frdm_mcxc444.vid.0=0x1FC9
+frdm_mcxc444.pid.0=0x0143
+frdm_mcxc444.upload_port.0.vid=0x1FC9
+frdm_mcxc444.upload_port.0.pid=0x0143
+
+# Debug (see the FRDM-MCXA153 entry)
+frdm_mcxc444.debug.server.openocd.path={runtime.platform.path}/tools/gdb-bridge/launch.sh
+frdm_mcxc444.debug.server.openocd.path.windows={runtime.platform.path}\tools\gdb-bridge\gdb-bridge-windows-amd64.exe
+frdm_mcxc444.debug.server.openocd.script=c444.cfg
+frdm_mcxc444.debug.svd_file={runtime.platform.path}/variants/frdm_mcxc444/svd/MCXC444.svd
