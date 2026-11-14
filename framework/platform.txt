@@ -1,0 +1,106 @@
+name=NXP FRDM MCX Series
+version=0.10.0
+# version.major/minor/patch mirror the version= line above (split by hand,
+# since platform.txt's {} substitution can't parse a dot-separated string
+# itself) -- keep these three in lockstep with version= at every release.
+# Consumed by compiler.defines below, which turns them into the
+# MCX_ARDUINO_CORE_VERSION_MAJOR/_MINOR/_PATCH macros a sketch/library
+# sees via mcx_arduino_core_version.h (included from Arduino.h).
+version.major=0
+version.minor=10
+version.patch=0
+
+compiler.path={runtime.tools.arm-none-eabi-gcc.path}/bin/
+compiler.cpu_flags=-mcpu={build.mcu} {build.fpu_flags} -mthumb
+compiler.defines=-DPRINTF_FLOAT_ENABLE=1 -DSCANF_FLOAT_ENABLE=1 -DPRINTF_ADVANCED_ENABLE=1 -DSCANF_ADVANCED_ENABLE=1 -D__NEWLIB__ -DSDK_OS_BAREMETAL -DSERIAL_PORT_TYPE_UART=1 -DSDK_DEBUGCONSOLE=0 -D__USE_CMSIS -DARDUINO=10819 -DARDUINO_ARCH_MCX -DARDUINO_{build.board} -DF_CPU={build.f_cpu} -DMCX_ARDUINO_CORE_VERSION_MAJOR={version.major} -DMCX_ARDUINO_CORE_VERSION_MINOR={version.minor} -DMCX_ARDUINO_CORE_VERSION_PATCH={version.patch} -DSDK_DELAY_USE_DWT {build.board_defines}
+# -gdwarf-5 (GCC 14's own default; the -gdwarf-4 here came from the initial
+# commit, inherited from an MCUXpresso project template with no reason
+# recorded). Under DWARF 4 the debugger printed
+#   warning: (Internal error: pc 0x318 in read in CU, but not in symtab.)
+# on every stop and step. --gc-sections leaves stale debug info behind for
+# the code it discards, and in DWARF 4 that left gdb's per-CU index claiming
+# an address its own line table did not cover -- an inconsistency gdb
+# reports through an unconditional warning() no setting can silence.
+# DWARF 5's .debug_rnglists encodes ranges against a base address rather
+# than as flat absolute pairs, and the two agree again. Verified on both
+# boards: text/data/bss byte-identical, and a session on real N947 hardware
+# runs clean through load, reset, breakpoint, backtrace and stepping.
+compiler.opt_flags={build.opt_flags} -fno-common -g3 -gdwarf-5 -ffunction-sections -fdata-sections -fno-builtin -fmerge-constants -specs=nano.specs
+compiler.warning_flags.none=
+compiler.warning_flags.default=-Wall
+compiler.warning_flags.more=-Wall
+compiler.warning_flags.all=-Wall -Wextra
+compiler.includes=-I{build.core.path} -I{build.core.path}/sdk -I{build.core.path}/r01lib -I{build.core.path}/arduino_api -I{build.variant.path}/include
+
+compiler.c.cmd=arm-none-eabi-gcc
+compiler.c.flags={compiler.cpu_flags} {compiler.defines} {compiler.opt_flags} {compiler.warning_flags} -Wno-unused-parameter -Wno-missing-field-initializers -Wno-old-style-declaration -c -D__NEWLIB__ -fstack-usage
+recipe.c.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.c.flags} {compiler.includes} {includes} -o "{object_file}" "{source_file}"
+
+compiler.cpp.cmd=arm-none-eabi-c++
+# -fno-threadsafe-statics, as AVR's core: a function-local static that is
+# initialized at run time (an object with a constructor, or one set from a
+# function call) otherwise calls __cxa_guard_acquire()/__cxa_guard_release(),
+# which nothing links in here (-nostdlib, no libstdc++), so the sketch failed
+# to link. With no threads there is nothing for the guard to protect against;
+# as on AVR, an interrupt that reaches the same function while the static is
+# being made would make it again.
+compiler.cpp.flags={compiler.cpu_flags} {compiler.defines} {compiler.opt_flags} {compiler.warning_flags} -Wno-address-of-packed-member -Wno-unused-parameter -Wno-missing-field-initializers -std=c++20 -c -fno-rtti -fno-exceptions -fno-threadsafe-statics -D__NEWLIB__ -fstack-usage
+recipe.cpp.o.pattern="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {compiler.includes} {includes} -o "{object_file}" "{source_file}"
+
+compiler.S.cmd=arm-none-eabi-gcc
+compiler.S.flags={compiler.cpu_flags} -c -x assembler-with-cpp
+recipe.S.o.pattern="{compiler.path}{compiler.S.cmd}" {compiler.S.flags} {compiler.includes} {includes} -o "{object_file}" "{source_file}"
+
+compiler.ar.cmd=arm-none-eabi-ar
+compiler.ar.flags=rcs
+recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} "{archive_file_path}" "{object_file}"
+
+compiler.c.elf.cmd=arm-none-eabi-c++
+compiler.c.elf.flags=-nostdlib -Xlinker --gc-sections -Xlinker -print-memory-usage -Xlinker --sort-section=alignment -u _printf_float -u _scanf_float {compiler.cpu_flags}
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} -T "{build.variant.path}/linker/{build.ldscript}" -o "{build.path}/{build.project_name}.elf" {object_files} -Wl,--whole-archive "{archive_file_path}" -Wl,--no-whole-archive -lc -lm -lgcc
+
+compiler.objcopy.cmd=arm-none-eabi-objcopy
+compiler.elf2hex.cmd=arm-none-eabi-objcopy
+compiler.elf2hex.flags=-O binary
+recipe.objcopy.bin.pattern="{compiler.path}{compiler.elf2hex.cmd}" {compiler.elf2hex.flags} "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.bin"
+
+compiler.size.cmd=arm-none-eabi-size
+recipe.size.pattern="{compiler.path}{compiler.size.cmd}" -A "{build.path}/{build.project_name}.elf"
+recipe.size.regex=^(?:\.text|\.data|\.rodata)\s+([0-9]+).*
+# RAM "used by global variables": everything in SRAM below the stack, the heap
+# included, so what the IDE reports left for local variables is the stack's
+# room before its hardware limit (MSPLIM, set at the end of the heap)
+recipe.size.regex.data=^(?:\.data|\.bss|\.noinit|\.uninit_RESERVED|\.heap)\s+([0-9]+).*
+
+# Upload
+tools.linkserver.upload.params.verbose=
+tools.linkserver.upload.params.quiet=
+# The selected port's USB serial number is the probe's own serial number
+# as LinkServer lists it, so it picks the board to flash when more than one
+# is plugged in. vid lets the scripts ignore a port that isn't an NXP probe.
+tools.linkserver.upload.pattern={runtime.platform.path}/tools/upload.sh "{build.path}/{build.project_name}.elf" "{build.linkserver_target}" "{upload.port.properties.serialNumber}" "{upload.port.properties.vid}"
+tools.linkserver.upload.pattern.windows={runtime.platform.path}/tools/upload.bat "{build.path}/{build.project_name}.elf" "{build.linkserver_target}" "{upload.port.properties.serialNumber}" "{upload.port.properties.vid}"
+
+upload.tool=linkserver
+upload.tool.default=linkserver
+
+# Debug
+# arduino-cli's debug support only knows how to drive something it calls
+# "openocd" -- the path to that executable is configurable per board
+# (boards.txt sets debug.server.openocd.path), but the string "openocd" in
+# debug.server itself is not. The path actually points at tools/gdb-bridge,
+# which relays gdb to NXP LinkServer's own gdbserver instead of running real
+# OpenOCD (which has no MCX chip support). See
+# tools/gdb-bridge/src/main.go for the full explanation.
+debug.executable={build.path}/{build.project_name}.elf
+debug.toolchain=gcc
+debug.toolchain.path={runtime.tools.arm-none-eabi-gcc.path}/bin/
+debug.toolchain.prefix=arm-none-eabi-
+debug.server=openocd
+# Arduino IDE 2's debug UI won't start a session without at least one
+# "OpenOCD configuration file" configured. gdb-bridge doesn't run OpenOCD
+# and reads nothing from these files as script -- but it does read the
+# board out of them, so the file itself is set per board in boards.txt
+# (debug.server.openocd.script). A board that forgets to set one gets the
+# IDE's own "at least one configuration file" error, which says so plainly.
+debug.server.openocd.scripts_dir={runtime.platform.path}/tools/gdb-bridge/
